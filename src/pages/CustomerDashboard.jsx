@@ -1,0 +1,81 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { FileText, Clock, CheckCircle, MessageSquare } from 'lucide-react';
+
+const CustomerDashboard = () => {
+    const { user } = useAuth();
+    const [rfqs, setRfqs] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchRFQs = async () => {
+            try {
+                const config = { headers: { Authorization: `Bearer ${user.token}` } };
+                const { data } = await axios.get('http://localhost:5000/api/rfq', config);
+                setRfqs(data);
+            } catch (error) {
+                console.error('Error fetching RFQs:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        if (user) fetchRFQs();
+    }, [user]);
+
+    if (!user) return <div className="container" style={{ padding: '100px', textAlign: 'center' }}>Please login to view dashboard.</div>;
+
+    return (
+        <div className="container" style={{ padding: '40px 1rem' }}>
+            <h1 style={{ marginBottom: '30px' }}>My Inquiries (RFQs)</h1>
+            
+            {loading ? (
+                <div>Loading your inquiries...</div>
+            ) : (
+                <div style={{ display: 'grid', gap: '20px' }}>
+                    {rfqs.length === 0 ? (
+                        <div className="card" style={{ textAlign: 'center', padding: '50px' }}>
+                            <MessageSquare size={48} style={{ color: 'var(--secondary)', marginBottom: '20px' }} />
+                            <h3>No inquires yet</h3>
+                            <p style={{ color: 'var(--secondary)' }}>Start browsing products and send inquiries to suppliers.</p>
+                        </div>
+                    ) : (
+                        rfqs.map(rfq => (
+                            <div key={rfq._id} className="card" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                        <span style={{ 
+                                            padding: '2px 8px', 
+                                            borderRadius: '4px', 
+                                            fontSize: '0.75rem', 
+                                            backgroundColor: rfq.status === 'pending' ? '#fef9c3' : '#dcfce7',
+                                            color: rfq.status === 'pending' ? '#854d0e' : '#166534'
+                                        }}>
+                                            {rfq.status.toUpperCase()}
+                                        </span>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--secondary)' }}>Sent on {new Date(rfq.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                    <h3 style={{ marginBottom: '5px' }}>{rfq.title}</h3>
+                                    <p style={{ color: 'var(--secondary)', fontSize: '0.95rem' }}>Product: <strong>{rfq.product?.name || 'N/A'}</strong></p>
+                                    <p style={{ marginTop: '10px', fontSize: '0.9rem' }}>{rfq.description}</p>
+                                    
+                                    {rfq.sellerReply && (
+                                        <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#e6f4ea', borderRadius: '8px', borderLeft: '4px solid #34a853' }}>
+                                            <p style={{ color: '#137333', margin: 0 }}><strong>Response from Seller:</strong></p>
+                                            <p style={{ color: '#1e8e3e', marginTop: '5px' }}>{rfq.sellerReply}</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <p style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Qty: {rfq.quantity}</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default CustomerDashboard;
