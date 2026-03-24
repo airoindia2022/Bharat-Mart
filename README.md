@@ -22,17 +22,7 @@ A full-stack MERN B2B marketplace application inspired by IndiaMart, featuring l
 - MongoDB Atlas account (configured in `.env`).
 - Cloudinary account (configured in `.env`).
 
-### 2. Environment Variables
-The `.env` file is located in the root directory and contains:
-```env
-PORT=5000
-MONGO_URI=mongodb+srv://root:Ayushkumar@cluster0.r7jbvli.mongodb.net/bm?appName=Cluster0
-JWT_SECRET=3fa213ad9f2da9b2f641dd9fd8b127e5
-CLOUDINARY_CLOUD_NAME=ddd0pijhx
-CLOUDINARY_API_KEY=486246483373823
-CLOUDINARY_API_SECRET=R9idQ5EfclL5dLOkTWolcKqDSjI
-NODE_ENV=development
-```
+``
 
 ### 3. Running the Backend
 ```bash

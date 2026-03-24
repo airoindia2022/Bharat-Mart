@@ -1,4 +1,4 @@
-import './config/env.js';
+import 'dotenv/config';
 import connectDB from './config/db.js';
 import User from './models/User.js';
 
