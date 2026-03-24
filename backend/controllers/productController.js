@@ -1,12 +1,23 @@
 import Product from '../models/Product.js';
+import User from '../models/User.js';
 
 export const createProduct = async (req, res) => {
     try {
         console.log('Create Product Request Body:', req.body);
         console.log('Create Product Files:', req.files);
         
-        const { name, description, category, price, minOrderQuantity } = req.body;
+        const { name, description, category, price, minOrderQuantity, packagingType, brand, deliveryTime, origin, specifications, countInStock } = req.body;
         const images = req.files ? req.files.map(file => file.path) : [];
+
+        // Parse specifications if it's sent as a JSON string
+        let parsedSpecs = [];
+        if (specifications) {
+            try {
+                parsedSpecs = typeof specifications === 'string' ? JSON.parse(specifications) : specifications;
+            } catch (error) {
+                console.error('Error parsing specifications:', error);
+            }
+        }
 
         const product = await Product.create({
             seller: req.user._id,
@@ -15,7 +26,13 @@ export const createProduct = async (req, res) => {
             category,
             price,
             minOrderQuantity,
-            images
+            packagingType,
+            brand,
+            deliveryTime,
+            origin,
+            images,
+            specifications: parsedSpecs,
+            countInStock: countInStock || 10
         });
 
         console.log('Product created successfully:', product._id);
@@ -27,25 +44,40 @@ export const createProduct = async (req, res) => {
 };
 
 export const getProducts = async (req, res) => {
-    const keyword = req.query.keyword ? {
-        name: {
+    let matchConditions = [];
+
+    if (req.query.keyword) {
+        const regex = {
             $regex: req.query.keyword,
             $options: 'i'
-        }
-    } : {};
-    
-    // Default: only approved products for customers, all for admin
-    const query = { ...keyword };
-    if (!req.user || req.user.role === 'customer') {
-        query.isApproved = true;
-    } else if (req.user.role === 'seller') {
-        // Seller sees approved products OR their own products
-        query.$or = [
-            { isApproved: true },
-            { seller: req.user._id }
-        ]
+        };
+        
+        const matchedUsers = await User.find({
+            $or: [{ companyName: regex }, { name: regex }]
+        }).select('_id');
+        
+        matchConditions.push({
+            $or: [
+                { name: regex },
+                { category: regex },
+                { seller: { $in: matchedUsers.map(u => u._id) } }
+            ]
+        });
     }
 
+    if (!req.user || req.user.role === 'customer') {
+        matchConditions.push({ isApproved: true });
+    } else if (req.user.role === 'seller') {
+        matchConditions.push({
+            $or: [
+                { isApproved: true },
+                { seller: req.user._id }
+            ]
+        });
+    }
+
+    const query = matchConditions.length > 0 ? { $and: matchConditions } : {};
+    
     const products = await Product.find(query).populate('seller', 'name companyName');
     res.json(products);
 };
@@ -70,6 +102,21 @@ export const updateProduct = async (req, res) => {
         product.category = req.body.category || product.category;
         product.price = req.body.price || product.price;
         product.minOrderQuantity = req.body.minOrderQuantity || product.minOrderQuantity;
+        product.packagingType = req.body.packagingType || product.packagingType;
+        product.brand = req.body.brand || product.brand;
+        product.deliveryTime = req.body.deliveryTime || product.deliveryTime;
+        product.origin = req.body.origin || product.origin;
+        product.countInStock = req.body.countInStock !== undefined ? req.body.countInStock : product.countInStock;
+        
+        if (req.body.specifications) {
+            try {
+                product.specifications = typeof req.body.specifications === 'string' 
+                    ? JSON.parse(req.body.specifications) 
+                    : req.body.specifications;
+            } catch (error) {
+                console.error('Error parsing specifications in update:', error);
+            }
+        }
         
         if (req.files && req.files.length > 0) {
             product.images = req.files.map(file => file.path);

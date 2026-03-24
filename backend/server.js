@@ -6,7 +6,8 @@ import connectDB from './config/db.js';
 import userRoutes from './routes/userRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import rfqRoutes from './routes/rfqRoutes.js';
-
+import paymentRoutes from './routes/paymentRoutes.js';
+import statsRoutes from './routes/statsRoutes.js';
 
 connectDB();
 
@@ -18,6 +19,16 @@ app.use(express.json());
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/rfq', rfqRoutes);
+app.use('/api/payment', paymentRoutes);
+app.use('/api/stats', statsRoutes);
+
+app.use((err, req, res, next) => {
+    console.error('SERVER ERROR LOG:', err);
+    res.status(err.status || 500).json({ 
+        message: err.message || 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+});
 
 const PORT = process.env.PORT || 5000;
 

@@ -5,6 +5,7 @@
   --card-foreground: #1a1a1a;
   --primary: #007bff;
   --primary-foreground: #ffffff;
+  --primary-bg: #e7f1ff;
   --secondary: #6c757d;
   --secondary-foreground: #ffffff;
   --accent: #f1f5f9;
@@ -17,6 +18,14 @@
   --brand-blue: #004b91;
   --brand-orange: #ff6600;
   --brand-green: #2e7d32;
+
+  /* Status Colors */
+  --success: #10b981;
+  --success-bg: #e6f4ea;
+  --warning: #f59e0b;
+  --warning-bg: #fff7ed;
+  --error: #ef4444;
+  --error-bg: #fef2f2;
 }
 
 .dark {
@@ -26,12 +35,21 @@
   --card-foreground: #f8fafc;
   --primary: #3b82f6;
   --primary-foreground: #ffffff;
+  --primary-bg: rgba(59, 130, 246, 0.1);
   --secondary: #94a3b8;
   --secondary-foreground: #0f172a;
   --accent: #334155;
   --accent-foreground: #3b82f6;
   --border: #334155;
   --input: #1e293b;
+
+  /* Status Colors Dark Mode */
+  --success: #34d399;
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --warning: #fbbf24;
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --error: #f87171;
+  --error-bg: rgba(239, 68, 68, 0.1);
 }
 
 * {
@@ -117,4 +135,24 @@ button {
 .input:focus {
   border-color: var(--primary);
   outline: none;
+}
+
+/* Seller Dashboard Specific Styles */
+.sidebar-item-hover:hover {
+    background-color: var(--accent) !important;
+    color: var(--foreground) !important;
+}
+.category-img:hover {
+    transform: scale(1.1);
+}
+.product-card:hover {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+.fade-in {
+    animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }

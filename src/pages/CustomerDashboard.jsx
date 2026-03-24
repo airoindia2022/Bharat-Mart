@@ -48,8 +48,8 @@ const CustomerDashboard = () => {
                                             padding: '2px 8px', 
                                             borderRadius: '4px', 
                                             fontSize: '0.75rem', 
-                                            backgroundColor: rfq.status === 'pending' ? '#fef9c3' : '#dcfce7',
-                                            color: rfq.status === 'pending' ? '#854d0e' : '#166534'
+                                            backgroundColor: rfq.status === 'pending' ? 'var(--warning-bg)' : 'var(--success-bg)',
+                                            color: rfq.status === 'pending' ? 'var(--warning)' : 'var(--success)'
                                         }}>
                                             {rfq.status.toUpperCase()}
                                         </span>
@@ -60,9 +60,9 @@ const CustomerDashboard = () => {
                                     <p style={{ marginTop: '10px', fontSize: '0.9rem' }}>{rfq.description}</p>
                                     
                                     {rfq.sellerReply && (
-                                        <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#e6f4ea', borderRadius: '8px', borderLeft: '4px solid #34a853' }}>
-                                            <p style={{ color: '#137333', margin: 0 }}><strong>Response from Seller:</strong></p>
-                                            <p style={{ color: '#1e8e3e', marginTop: '5px' }}>{rfq.sellerReply}</p>
+                                        <div style={{ marginTop: '15px', padding: '15px', backgroundColor: 'var(--success-bg)', borderRadius: '8px', borderLeft: '4px solid var(--success)' }}>
+                                            <p style={{ color: 'var(--success)', margin: 0 }}><strong>Response from Seller:</strong></p>
+                                            <p style={{ color: 'var(--foreground)', marginTop: '5px' }}>{rfq.sellerReply}</p>
                                         </div>
                                     )}
                                 </div>

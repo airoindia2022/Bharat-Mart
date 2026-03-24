@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -11,6 +12,7 @@ import ProductDetail from './pages/ProductDetail';
 import CustomerDashboard from './pages/CustomerDashboard';
 import SellerDashboard from './pages/SellerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import Orders from './pages/Orders';
 import './index.css';
 
 function App() {
@@ -18,9 +20,9 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <Router>
-          <div className="app">
+          <div className="app" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
             <Navbar />
-            <main>
+            <main style={{ flex: 1 }}>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
@@ -30,8 +32,10 @@ function App() {
                 <Route path="/customer-dashboard" element={<CustomerDashboard />} />
                 <Route path="/seller-dashboard" element={<SellerDashboard />} />
                 <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                <Route path="/orders" element={<Orders />} />
               </Routes>
             </main>
+            <Footer />
           </div>
         </Router>
       </AuthProvider>
