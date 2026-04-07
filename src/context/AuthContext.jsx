@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import * as authService from '../services/auth.service';
 
 const AuthContext = createContext();
 
@@ -16,35 +16,49 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (email, password) => {
-        const { data } = await axios.post('http://localhost:5000/api/users/login', { email, password });
+        const data = await authService.login({ email, password });
         setUser(data);
         localStorage.setItem('userInfo', JSON.stringify(data));
+        if (data.token) {
+            localStorage.setItem('token', data.token);
+        }
     };
 
     const register = async (userData) => {
-        const { data } = await axios.post('http://localhost:5000/api/users/register', userData);
+        const data = await authService.register(userData);
         setUser(data);
         localStorage.setItem('userInfo', JSON.stringify(data));
+        if (data.token) {
+            localStorage.setItem('token', data.token);
+        }
     };
 
     const logout = () => {
+        authService.logout();
         setUser(null);
-        localStorage.removeItem('userInfo');
     };
 
     const updateProfile = async (userData) => {
-        const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.put('http://localhost:5000/api/users/profile', userData, config);
+        const data = await authService.updateProfile(userData);
         setUser(data);
         localStorage.setItem('userInfo', JSON.stringify(data));
         return data;
     };
 
+    const uploadLogo = async (formData) => {
+        const data = await authService.uploadLogo(formData);
+        const updatedUser = { ...user, logoURL: data.logoURL };
+        setUser(updatedUser);
+        localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+        return data;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, updateProfile, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, updateProfile, uploadLogo, loading }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
 export const useAuth = () => useContext(AuthContext);
+

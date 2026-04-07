@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import * as productService from '../services/product.service';
 import { Search, ChevronRight, Truck, ShieldCheck, Headphones, MapPin, MessageSquare, Info } from 'lucide-react';
 
 const Home = () => {
@@ -17,9 +17,10 @@ const Home = () => {
     };
 
     useEffect(() => {
+        const controller = new AbortController();
         const fetchProducts = async () => {
             try {
-                const { data } = await axios.get('http://localhost:5000/api/products');
+                const data = await productService.getProducts({}, controller.signal);
                 const grouped = {};
                 data.forEach(product => {
                     const cat = product.category || 'Other';
@@ -32,12 +33,15 @@ const Home = () => {
                 });
                 setProductsByCategory(grouped);
             } catch (error) {
-                console.error('Error fetching products:', error);
+                if (error.name !== 'AbortError') {
+                    console.error('Error fetching products:', error);
+                }
             } finally {
                 setLoading(false);
             }
         };
         fetchProducts();
+        return () => controller.abort();
     }, []);
 
     return (

@@ -19,6 +19,9 @@ export const createRFQ = async (req, res) => {
 
 export const getRFQs = async (req, res) => {
     let query = {};
+    if (!req.user) {
+        return res.status(401).json({ message: 'Not authorized' });
+    }
     if (req.user.role === 'customer') {
         query.customer = req.user._id;
     } else if (req.user.role === 'seller') {

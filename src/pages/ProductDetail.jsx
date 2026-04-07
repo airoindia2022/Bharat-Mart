@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import * as productService from '../services/product.service';
+import * as paymentService from '../services/payment.service';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    ShoppingBag, 
-    MessageSquare, 
-    ShieldCheck, 
-    MapPin, 
-    Phone, 
-    Send, 
-    ChevronLeft, 
-    Star, 
-    Truck, 
-    Clock, 
+import {
+    ShoppingBag,
+    ShieldCheck,
+    MapPin,
+    ChevronLeft,
+    Star,
+    Truck,
+    Clock,
     CheckCircle2,
-    X,
     Package,
     ArrowRight,
     Zap,
@@ -27,7 +24,9 @@ import {
     Globe,
     Award,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Plus,
+    Minus
 } from 'lucide-react';
 
 const ProductDetail = () => {
@@ -37,7 +36,6 @@ const ProductDetail = () => {
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [rfqModal, setRfqModal] = useState(false);
     const [rfqData, setRfqData] = useState({ title: '', description: '', quantity: 1 });
     const [successMsg, setSuccessMsg] = useState('');
     const [activeImage, setActiveImage] = useState(0);
@@ -45,57 +43,41 @@ const ProductDetail = () => {
     const [expandedSections, setExpandedSections] = useState({ description: true, specs: false });
 
     useEffect(() => {
+        const controller = new AbortController();
         const fetchProduct = async () => {
             try {
-                const { data } = await axios.get(`http://localhost:5000/api/products/${id}`);
+                const data = await productService.getProductById(id, controller.signal);
                 setProduct(data);
-                setRfqData({ 
-                    title: `Business Inquiry: ${data.name}`, 
-                    description: '',
-                    quantity: data.minOrderQuantity || 1 
-                });
+                setRfqData(prev => ({ ...prev, quantity: data.minOrderQuantity || 1 }));
             } catch (error) {
-                console.error('Error fetching product:', error);
+                if (error.name !== 'AbortError') {
+                    console.error('Error fetching product:', error);
+                }
             } finally {
                 setLoading(false);
             }
         };
         fetchProduct();
         window.scrollTo(0, 0);
+        return () => controller.abort();
     }, [id]);
 
-    const handleSendRFQ = async (e) => {
-        e.preventDefault();
-        if (!user) { navigate('/login'); return; }
-        try {
-            const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            await axios.post('http://localhost:5000/api/rfq', {
-                productId: product._id,
-                ...rfqData
-            }, config);
-            setSuccessMsg('Inquiry Sent Successfully!');
-            setTimeout(() => { setRfqModal(false); setSuccessMsg(''); }, 3000);
-        } catch (error) {
-            alert('Failed to send inquiry');
-        }
-    };
 
     const handlePayment = async () => {
         if (!user) { navigate('/login'); return; }
 
         try {
-            const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            const { data } = await axios.post('http://localhost:5000/api/payment/create-order', {
+            const data = await paymentService.createOrder({
                 productId: product._id,
                 amount: product.price * rfqData.quantity,
                 quantity: rfqData.quantity,
                 sellerId: product.seller._id
-            }, config);
+            });
 
             const { order } = data;
 
             const options = {
-                key: "rzp_test_SNzPfkHs3w4syf", 
+                key: "rzp_live_SV3kPDAMp3RMtY",
                 amount: order.amount,
                 currency: order.currency,
                 name: "Bharat Mart",
@@ -103,13 +85,13 @@ const ProductDetail = () => {
                 order_id: order.id,
                 handler: async function (response) {
                     try {
-                        const verifyRes = await axios.post('http://localhost:5000/api/payment/verify-payment', {
+                        const verifyData = await paymentService.verifyPayment({
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature
-                        }, config);
+                        });
 
-                        if (verifyRes.data.success) {
+                        if (verifyData.success) {
                             setSuccessMsg('Payment Successful!');
                             setTimeout(() => setSuccessMsg(''), 5000);
                         }
@@ -134,13 +116,13 @@ const ProductDetail = () => {
 
     if (loading) return (
         <div className="bm-premium-loader">
-            <motion.div 
+            <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
                 className="loader-nucleus"
             />
-            <motion.p 
-                initial={{ opacity: 0 }} 
+            <motion.p
+                initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
             >
@@ -159,7 +141,7 @@ const ProductDetail = () => {
         <div className="bm-product-page">
             <AnimatePresence>
                 {successMsg && (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, y: -50 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.5 }}
@@ -192,20 +174,20 @@ const ProductDetail = () => {
                 <main className="bm-layout-grid">
                     {/* Visual Section */}
                     <div className="bm-visual-stack">
-                        <motion.div 
+                        <motion.div
                             layoutId="product-main-view"
                             className="bm-main-display"
                         >
-                            <img 
-                                src={product.images[activeImage] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000&auto=format&fit=crop'} 
-                                alt={product.name} 
+                            <img
+                                src={product.images[activeImage] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?q=80&w=1000&auto=format&fit=crop'}
+                                alt={product.name}
                             />
                             <div className="bm-badge-stack">
                                 {product.isVerified && <span className="badge verified"><ShieldCheck size={14} /> Verified</span>}
                                 {product.discount && <span className="badge offer">-{product.discount}%</span>}
                             </div>
                             <div className="bm-interaction-layers">
-                                <motion.button 
+                                <motion.button
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.9 }}
                                     onClick={() => setWishlisted(!wishlisted)}
@@ -219,7 +201,7 @@ const ProductDetail = () => {
 
                         <div className="bm-thumbnail-slider">
                             {product.images.map((img, i) => (
-                                <motion.div 
+                                <motion.div
                                     key={i}
                                     whileHover={{ y: -5 }}
                                     onClick={() => setActiveImage(i)}
@@ -263,6 +245,33 @@ const ProductDetail = () => {
                                     <label><Package size={14} /> Min Order</label>
                                     <p>{product.minOrderQuantity || 1} Units</p>
                                 </div>
+                                <div className="config-box qty-box">
+                                    <label><ShoppingBag size={14} /> Buy Quantity</label>
+                                    <div className="qty-picker-inline">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setRfqData(prev => ({ ...prev, quantity: Math.max(product.minOrderQuantity || 1, prev.quantity - 1) }))}
+                                            disabled={rfqData.quantity <= (product.minOrderQuantity || 1)}
+                                        >
+                                            <Minus size={14} />
+                                        </button>
+                                        <input 
+                                            type="number" 
+                                            value={rfqData.quantity} 
+                                            onChange={e => setRfqData(prev => ({ 
+                                                ...prev, 
+                                                quantity: Math.max(product.minOrderQuantity || 1, Math.min(product.countInStock || 9999, parseInt(e.target.value) || 1)) 
+                                            }))} 
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={() => setRfqData(prev => ({ ...prev, quantity: Math.min(product.countInStock || 9999, prev.quantity + 1) }))}
+                                            disabled={rfqData.quantity >= (product.countInStock || 9999)}
+                                        >
+                                            <Plus size={14} />
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="config-box">
                                     <label><Clock size={14} /> Shipping</label>
                                     <p>{product.deliveryTime || '24-48 Hours'}</p>
@@ -276,27 +285,19 @@ const ProductDetail = () => {
                             </div>
 
                             <div className="bm-cta-hub">
-                                <motion.button 
+                                <motion.button
                                     whileHover={{ scale: (product.countInStock || 0) < rfqData.quantity ? 1 : 1.02 }}
                                     whileTap={{ scale: (product.countInStock || 0) < rfqData.quantity ? 1 : 0.98 }}
-                                    onClick={handlePayment} 
+                                    onClick={handlePayment}
                                     className="bm-primary-cta"
                                     disabled={loading || (product.countInStock || 0) < rfqData.quantity}
-                                    style={{ 
+                                    style={{
                                         opacity: (product.countInStock || 0) < rfqData.quantity ? 0.7 : 1,
                                         cursor: (product.countInStock || 0) < rfqData.quantity ? 'not-allowed' : 'pointer',
                                         background: (product.countInStock || 0) < rfqData.quantity ? '#6b7280' : 'var(--brand-blue)'
                                     }}
                                 >
                                     <Zap size={20} /> {(product.countInStock || 0) < rfqData.quantity ? 'Out of Stock' : 'Buy It Now'}
-                                </motion.button>
-                                <motion.button 
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => setRfqModal(true)} 
-                                    className="bm-secondary-cta"
-                                >
-                                    <MessageSquare size={20} /> Bulk Inquiry
                                 </motion.button>
                             </div>
                         </div>
@@ -307,7 +308,7 @@ const ProductDetail = () => {
                                     <span>Product Story</span>
                                     {expandedSections.description ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                                 </button>
-                                <motion.div 
+                                <motion.div
                                     initial={false}
                                     animate={{ height: expandedSections.description ? 'auto' : 0, opacity: expandedSections.description ? 1 : 0 }}
                                     className="accordion-content"
@@ -321,7 +322,7 @@ const ProductDetail = () => {
                                     <span>Technical Specifications</span>
                                     {expandedSections.specs ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                                 </button>
-                                <motion.div 
+                                <motion.div
                                     initial={false}
                                     animate={{ height: expandedSections.specs ? 'auto' : 0, opacity: expandedSections.specs ? 1 : 0 }}
                                     className="accordion-content"
@@ -352,8 +353,12 @@ const ProductDetail = () => {
                     <aside className="bm-sidebar-stack">
                         <section className="bm-seller-profile-card">
                             <div className="card-header">
-                                <div className="seller-avatar">
-                                    {product.seller?.companyName?.charAt(0) || 'B'}
+                                <div className="seller-avatar" style={{ overflow: 'hidden' }}>
+                                    {product.seller?.logoURL ? (
+                                        <img src={product.seller.logoURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Logo" />
+                                    ) : (
+                                        product.seller?.companyName?.charAt(0) || 'B'
+                                    )}
                                 </div>
                                 <div className="seller-details">
                                     <h3>{product.seller?.companyName || 'Bharat Enterprises'}</h3>
@@ -377,12 +382,6 @@ const ProductDetail = () => {
                             </div>
 
                             <div className="seller-contact-actions">
-                                <a href={`tel:${product.seller?.phoneNumber}`} className="contact-link phone">
-                                    <Phone size={16} /> <span>Call Seller</span>
-                                </a>
-                                <button onClick={() => setRfqModal(true)} className="contact-link chat">
-                                    <MessageSquare size={16} /> <span>Chat Inquiry</span>
-                                </button>
                             </div>
                         </section>
 
@@ -397,73 +396,6 @@ const ProductDetail = () => {
                 </main>
             </div>
 
-            {/* Premium RFQ Modal */}
-            <AnimatePresence>
-                {rfqModal && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="bm-modal-overlay"
-                    >
-                        <motion.div 
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, y: 20 }}
-                            className="bm-glass-modal"
-                        >
-                            <button onClick={() => setRfqModal(false)} className="close-btn"><X size={24} /></button>
-                            <div className="modal-header">
-                                <h2>Request for Quote</h2>
-                                <p>Send your requirements directly to the manufacturer.</p>
-                            </div>
-                            
-                            <form onSubmit={handleSendRFQ}>
-                                <div className="form-group">
-                                    <label>What are you looking for?</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Specific model or requirements..."
-                                        value={rfqData.title} 
-                                        onChange={e => setRfqData({...rfqData, title: e.target.value})} 
-                                        required 
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Description (Optional)</label>
-                                    <textarea 
-                                        placeholder="Size, color, shipping details..."
-                                        value={rfqData.description} 
-                                        onChange={e => setRfqData({...rfqData, description: e.target.value})} 
-                                    />
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Required Quantity</label>
-                                        <div className="qty-picker">
-                                            <input 
-                                                type="number" 
-                                                min={product.minOrderQuantity} 
-                                                value={rfqData.quantity} 
-                                                onChange={e => setRfqData({...rfqData, quantity: e.target.value})} 
-                                            />
-                                            <span>Units</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <motion.button 
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    type="submit" 
-                                    className="bm-submit-btn"
-                                >
-                                    Send Inquiry <Send size={18} />
-                                </motion.button>
-                            </form>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
             <style>{`
                 .bm-product-page {
@@ -612,6 +544,56 @@ const ProductDetail = () => {
                 .config-box label { display: flex; align-items: center; gap: 6px; color: var(--secondary); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
                 .config-box p { font-size: 1.1rem; font-weight: 700; color: var(--foreground); margin-top: 8px; }
 
+                .qty-picker-inline {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-top: 10px;
+                }
+                .qty-picker-inline button {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 8px;
+                    border: 1.5px solid var(--border);
+                    background: var(--accent);
+                    color: var(--foreground);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: 0.2s;
+                }
+                .qty-picker-inline button:hover:not(:disabled) {
+                    background: var(--foreground);
+                    color: var(--background);
+                    border-color: var(--foreground);
+                }
+                .qty-picker-inline button:disabled {
+                    opacity: 0.3;
+                    cursor: not-allowed;
+                }
+                .qty-picker-inline input {
+                    width: 45px;
+                    text-align: center;
+                    border: none;
+                    background: none;
+                    font-weight: 800;
+                    color: var(--foreground);
+                    font-size: 1.1rem;
+                    padding: 0;
+                    outline: none;
+                }
+                /* Hide arrows for Chrome, Safari, Edge, Opera */
+                .qty-picker-inline input::-webkit-outer-spin-button,
+                .qty-picker-inline input::-webkit-inner-spin-button {
+                  -webkit-appearance: none;
+                  margin: 0;
+                }
+                /* Hide arrows for Firefox */
+                .qty-picker-inline input[type=number] {
+                  -moz-appearance: textfield;
+                }
+
                 .bm-cta-hub { display: flex; gap: 20px; }
                 .bm-primary-cta, .bm-secondary-cta {
                     flex: 1; height: 64px; border-radius: 16px; font-weight: 800;
@@ -671,8 +653,6 @@ const ProductDetail = () => {
                     justify-content: center; gap: 10px; font-weight: 700; font-size: 0.9rem;
                     transition: 0.3s;
                 }
-                .contact-link.phone { background: var(--primary); color: #fff; }
-                .contact-link.chat { border: 2px solid var(--border); color: var(--foreground); background: var(--card); }
 
                 .bm-trust-banner {
                     background: var(--accent); border: 1px solid var(--border);
@@ -681,42 +661,6 @@ const ProductDetail = () => {
                 .bm-trust-banner h5 { margin: 0; font-weight: 800; color: var(--foreground); font-size: 0.95rem; }
                 .bm-trust-banner p { font-size: 0.8rem; color: var(--secondary); margin-top: 5px; line-height: 1.4; font-weight: 500; }
 
-                /* Modal styling */
-                .bm-modal-overlay {
-                    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-                    backdrop-filter: blur(8px); display: flex; align-items: center;
-                    justify-content: center; z-index: 1000; padding: 20px;
-                }
-                .bm-glass-modal {
-                    background: var(--card); border-radius: 32px; width: 100%;
-                    max-width: 540px; padding: 50px; position: relative;
-                    box-shadow: 0 50px 100px -20px rgba(0,0,0,0.25);
-                    border: 1px solid var(--border);
-                }
-                .close-btn { position: absolute; top: 30px; right: 30px; border: none; background: var(--accent); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--foreground); }
-
-                .modal-header h2 { font-size: 2rem; font-weight: 900; color: var(--foreground); }
-                .modal-header p { color: var(--secondary); margin-top: 10px; font-weight: 500; }
-
-                .form-group { margin-top: 25px; }
-                .form-group label { display: block; font-size: 0.85rem; font-weight: 700; color: var(--secondary); margin-bottom: 10px; }
-                .form-group input, .form-group textarea {
-                    width: 100%; padding: 16px; border-radius: 16px; border: 2px solid var(--border);
-                    background: var(--accent); font-size: 1rem; color: var(--foreground); transition: 0.3s; outline: none;
-                }
-                .form-group input:focus { border-color: var(--primary); background: var(--card); }
-                .form-group textarea { height: 120px; resize: none; }
-
-                .qty-picker { display: flex; align-items: center; gap: 12px; }
-                .qty-picker input { width: 100px; text-align: center; }
-                .qty-picker span { font-weight: 700; color: var(--secondary); }
-
-                .bm-submit-btn {
-                    width: 100%; height: 60px; background: var(--primary); color: #fff;
-                    border: none; border-radius: 16px; font-weight: 800; font-size: 1.1rem;
-                    margin-top: 40px; cursor: pointer; display: flex; align-items: center;
-                    justify-content: center; gap: 12px;
-                }
 
                 /* Loader */
                 .bm-premium-loader {

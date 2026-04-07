@@ -66,6 +66,15 @@ export const updateProfile = async (userData) => {
   return data;
 };
 
+export const uploadLogo = async (formData) => {
+  const { data } = await api.post('/users/logo', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return data;
+};
+
 // Users Endpoints (Admin only)
 export const getUsers = async () => {
     const { data } = await api.get('/users');

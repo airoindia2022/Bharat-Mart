@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Search, Filter, ShoppingCart, Info, MapPin, ShieldCheck, MessageSquare } from 'lucide-react';
+import * as productService from '../services/product.service';
+import * as authService from '../services/auth.service';
+import { Search, Filter, ShoppingCart, Info, MapPin, ShieldCheck, MessageSquare, ArrowLeft } from 'lucide-react';
 
 const ProductList = () => {
     const location = useLocation();
@@ -14,11 +15,14 @@ const ProductList = () => {
     const [maxPrice, setMaxPrice] = useState('');
     const [verifiedOnly, setVerifiedOnly] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+    const [sellerInfo, setSellerInfo] = useState(null);
 
     useEffect(() => {
+        const controller = new AbortController();
         const queryParams = new URLSearchParams(location.search);
         const categoryParam = queryParams.get('category');
         const keywordParam = queryParams.get('keyword');
+        const sellerParam = queryParams.get('seller');
         
         if (categoryParam) {
             setSelectedCategory(categoryParam);
@@ -26,17 +30,35 @@ const ProductList = () => {
         if (keywordParam) {
             setSearch(keywordParam);
         }
+
+        if (sellerParam) {
+            fetchSellerInfo(sellerParam, controller.signal);
+        } else {
+            setSellerInfo(null);
+        }
         
-        fetchProducts(keywordParam || '');
+        fetchProducts({ keyword: keywordParam || '', seller: sellerParam || '' }, controller.signal);
+        return () => controller.abort();
     }, [location.search]);
 
-    const fetchProducts = async (keyword = '') => {
+    const fetchSellerInfo = async (sellerId, signal) => {
+        try {
+            const data = await authService.getPublicProfile(sellerId, signal);
+            setSellerInfo(data);
+        } catch (error) {
+            console.error('Error fetching seller info:', error);
+        }
+    };
+
+    const fetchProducts = async (filters = {}, signal) => {
         setLoading(true);
         try {
-            const { data } = await axios.get(`http://localhost:5000/api/products?keyword=${keyword}`);
+            const data = await productService.getProducts(filters, signal);
             setProducts(data);
         } catch (error) {
-            console.error('Error fetching products:', error);
+            if (error.name !== 'AbortError') {
+                console.error('Error fetching products:', error);
+            }
         } finally {
             setLoading(false);
         }
@@ -63,7 +85,20 @@ const ProductList = () => {
         <div className="container" style={{ padding: '40px 1rem' }}>
             <div style={{ marginBottom: '40px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-                    <h1 style={{ fontSize: '2rem' }}>All Products</h1>
+                    <div>
+                        {sellerInfo ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <button onClick={() => navigate(-1)} className="btn btn-outline" style={{ padding: '8px' }}><ArrowLeft size={18} /></button>
+                                {sellerInfo.logoURL && <img src={sellerInfo.logoURL} style={{ width: '50px', height: '50px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />}
+                                <div>
+                                    <h1 style={{ fontSize: '1.8rem', margin: 0 }}>{sellerInfo.companyName || sellerInfo.name}'s Profile</h1>
+                                    <p style={{ color: 'var(--secondary)', margin: 0 }}>Showing all products from this seller</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <h1 style={{ fontSize: '2rem' }}>All Products</h1>
+                        )}
+                    </div>
                     <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
                         <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', maxWidth: '400px', width: '100%' }}>
                             <input 
@@ -171,7 +206,10 @@ const ProductList = () => {
                                 <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                                     <span style={{ fontSize: '0.8rem', color: 'var(--brand-blue)', fontWeight: 600, textTransform: 'uppercase' }}>{product.category}</span>
                                     <h3 style={{ margin: '10px 0', fontSize: '1.25rem' }}>{product.name}</h3>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '5px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                                        {product.seller?.logoURL && (
+                                            <img src={product.seller.logoURL} style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />
+                                        )}
                                         <p style={{ color: 'var(--secondary)', fontSize: '0.9rem', margin: 0, fontWeight: 500 }}>{product.seller?.companyName}</p>
                                         {product.isApproved && <ShieldCheck size={14} color="var(--brand-green)" title="Verified Supplier" />}
                                     </div>

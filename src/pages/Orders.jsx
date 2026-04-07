@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import * as paymentService from '../services/payment.service';
 import { useAuth } from '../context/AuthContext';
 import { Package, Calendar, Tag, User, MapPin } from 'lucide-react';
 
@@ -9,24 +9,26 @@ const Orders = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const controller = new AbortController();
         const fetchOrders = async () => {
             try {
-                const config = { headers: { Authorization: `Bearer ${user.token}` } };
                 // Fetch buyer or seller orders based on role
-                const endpoint = (user.role === 'seller' || user.role === 'admin') 
-                    ? 'http://localhost:5000/api/payment/seller-orders'
-                    : 'http://localhost:5000/api/payment/my-orders';
+                const data = (user.role === 'seller' || user.role === 'admin') 
+                    ? await paymentService.getSellerOrders(controller.signal)
+                    : await paymentService.getMyOrders(controller.signal);
                 
-                const { data } = await axios.get(endpoint, config);
                 setOrders(data);
             } catch (error) {
-                console.error('Error fetching orders:', error);
+                if (error.name !== 'AbortError') {
+                    console.error('Error fetching orders:', error);
+                }
             } finally {
                 setLoading(false);
             }
         };
 
         if (user) fetchOrders();
+        return () => controller.abort();
     }, [user]);
 
     if (loading) return <div className="container" style={{ padding: '100px', textAlign: 'center' }}>Loading...</div>;

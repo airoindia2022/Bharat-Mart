@@ -21,6 +21,7 @@ const userSchema = mongoose.Schema({
     ifscCode: { type: String },
     accountHolderName: { type: String },
     razorpayAccountId: { type: String }, // For Razorpay Route
+    logoURL: { type: String }, // For Company Logo
 }, { timestamps: true });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {

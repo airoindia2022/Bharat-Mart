@@ -53,9 +53,8 @@ const transferToSeller = async (orderId) => {
                 seller.razorpayAccountId = razorpayAccountId;
                 await seller.save();
             } catch (error) {
-                console.error('Error creating Razorpay account:', error);
-                // For demo purposes, we might just use a placeholder or log it
-                // razorpayAccountId = 'acc_placeholder'; 
+                console.error('Error creating Razorpay account (Check if Linked Accounts feature is enabled in your Razorpay dashboard):', error);
+                // For demo purposes, we skip auto-transfer and allow manual settlement from Admin Panel
                 return; 
             }
         }
@@ -146,7 +145,7 @@ export const verifyPayment = async (req, res) => {
                     status: 'Paid', 
                     razorpayPaymentId: razorpay_payment_id 
                 },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             // Decrease product stock
@@ -156,8 +155,8 @@ export const verifyPayment = async (req, res) => {
                     { $inc: { countInStock: -order.quantity } }
                 );
 
-                // Auto transfer to seller
-                await transferToSeller(order._id);
+                // Auto transfer to seller (DISABLED as per user request: manual settlement only)
+                // await transferToSeller(order._id);
             }
 
             res.status(200).json({ success: true, message: 'Payment verified successfully' });
@@ -213,5 +212,81 @@ export const getAllOrders = async (req, res) => {
         res.status(200).json(orders);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching all orders' });
+    }
+};
+
+// @desc    Settle Order Manually / Transfer Settlement (as admin)
+// @route   PUT /api/payment/settle-order/:id
+// @access  Admin
+export const settleOrderManual = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        if (order.status !== 'Paid') {
+            return res.status(400).json({ message: 'Cannot settle an unpaid or already refunded order' });
+        }
+
+        if (order.isTransferredToSeller) {
+            return res.status(400).json({ message: 'Order already settled' });
+        }
+
+        order.isTransferredToSeller = true;
+        order.razorpayTransferId = 'MANUAL_SETTLEMENT_' + Date.now();
+        order.transferAmount = order.amount * 0.90; // Defaulting to 90%
+        
+        const updatedOrder = await order.save();
+        res.status(200).json(updatedOrder);
+    } catch (error) {
+        console.error('Manual settlement failed:', error);
+        res.status(500).json({ message: 'Error settling order manually' });
+    }
+};
+
+// @desc    Refund Order Manually (as admin)
+// @route   PUT /api/payment/refund-order/:id
+// @access  Admin
+export const refundOrderManual = async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        if (order.status !== 'Paid') {
+            return res.status(400).json({ message: 'Only paid orders can be refunded' });
+        }
+
+        if (order.isTransferredToSeller) {
+            return res.status(400).json({ message: 'Cannot refund an order already settled to the seller' });
+        }
+
+        // Trigger Razorpay Refund
+        try {
+            if (order.razorpayPaymentId) {
+                await razorpay.payments.refund(order.razorpayPaymentId, {
+                    amount: order.amount * 100 // in paise
+                });
+            }
+        } catch (razorpayError) {
+            console.error('Razorpay Refund API failed:', razorpayError);
+            // We might still want to mark it as refunded in our DB if the admin is doing it manually
+        }
+
+        order.status = 'Refunded';
+        
+        // Restore stock
+        await Product.findByIdAndUpdate(
+            order.product,
+            { $inc: { countInStock: order.quantity } }
+        );
+
+        const updatedOrder = await order.save();
+        res.status(200).json(updatedOrder);
+    } catch (error) {
+        console.error('Manual refund failed:', error);
+        res.status(500).json({ message: 'Error refunding order manually' });
     }
 };

@@ -42,8 +42,12 @@ const Navbar = () => {
                             {user.role === 'seller' && <Link to="/seller-dashboard">Seller Center</Link>}
                             {user.role === 'admin' && <Link to="/admin-dashboard">Admin Panel</Link>}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <User size={18} />
-                                <span>{user.name}</span>
+                                {user.logoURL ? (
+                                    <img src={user.logoURL} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />
+                                ) : (
+                                    <User size={18} />
+                                )}
+                                <span style={{ fontWeight: 600 }}>{user.name}</span>
                             </div>
                             <button onClick={handleLogout} className="btn btn-outline">Logout</button>
                         </>

@@ -21,6 +21,13 @@ export const registerUser = async (req, res) => {
                 role: user.role,
                 companyName: user.companyName,
                 phoneNumber: user.phoneNumber,
+                address: user.address,
+                bankName: user.bankName,
+                accountNumber: user.accountNumber,
+                ifscCode: user.ifscCode,
+                accountHolderName: user.accountHolderName,
+                razorpayAccountId: user.razorpayAccountId,
+                logoURL: user.logoURL,
                 token: generateToken(user._id)
             });
         } else {
@@ -44,6 +51,13 @@ export const loginUser = async (req, res) => {
                 role: user.role,
                 companyName: user.companyName,
                 phoneNumber: user.phoneNumber,
+                address: user.address,
+                bankName: user.bankName,
+                accountNumber: user.accountNumber,
+                ifscCode: user.ifscCode,
+                accountHolderName: user.accountHolderName,
+                razorpayAccountId: user.razorpayAccountId,
+                logoURL: user.logoURL,
                 token: generateToken(user._id)
             });
         } else {
@@ -73,13 +87,35 @@ export const getUserProfile = async (req, res) => {
                 accountNumber: user.accountNumber,
                 ifscCode: user.ifscCode,
                 accountHolderName: user.accountHolderName,
-                razorpayAccountId: user.razorpayAccountId
+                razorpayAccountId: user.razorpayAccountId,
+                logoURL: user.logoURL
             });
         } else {
             res.status(404).json({ message: 'User not found' });
         }
     } catch (error) {
         console.error('Get profile error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const getUserPublicProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (user) {
+            res.json({
+                _id: user._id,
+                name: user.name,
+                companyName: user.companyName,
+                address: user.address,
+                logoURL: user.logoURL,
+                role: user.role
+            });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        console.error('Get public profile error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -113,7 +149,13 @@ export const updateUserProfile = async (req, res) => {
                 token: generateToken(updatedUser._id),
                 companyName: updatedUser.companyName,
                 phoneNumber: updatedUser.phoneNumber,
-                address: updatedUser.address
+                address: updatedUser.address,
+                bankName: updatedUser.bankName,
+                accountNumber: updatedUser.accountNumber,
+                ifscCode: updatedUser.ifscCode,
+                accountHolderName: updatedUser.accountHolderName,
+                razorpayAccountId: updatedUser.razorpayAccountId,
+                logoURL: updatedUser.logoURL
             });
         } else {
             res.status(404).json({ message: 'User not found' });
@@ -129,6 +171,28 @@ export const getUsers = async (req, res) => {
         const users = await User.find({});
         res.json(users);
     } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const uploadLogo = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (user) {
+            if (!req.file) {
+                return res.status(400).json({ message: 'No file uploaded' });
+            }
+            user.logoURL = req.file.path;
+            const updatedUser = await user.save();
+            res.json({
+                message: 'Logo uploaded successfully',
+                logoURL: updatedUser.logoURL
+            });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        console.error('Logo upload error:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import * as rfqService from '../services/rfq.service';
 import { useAuth } from '../context/AuthContext';
 import { FileText, Clock, CheckCircle, MessageSquare } from 'lucide-react';
 
@@ -9,18 +9,21 @@ const CustomerDashboard = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchRFQs = async () => {
+        const controller = new AbortController();
+        const fetchRFQs = async (signal) => {
             try {
-                const config = { headers: { Authorization: `Bearer ${user.token}` } };
-                const { data } = await axios.get('http://localhost:5000/api/rfq', config);
+                const data = await rfqService.getRFQs({}, signal);
                 setRfqs(data);
             } catch (error) {
-                console.error('Error fetching RFQs:', error);
+                if (error.name !== 'AbortError') {
+                    console.error('Error fetching RFQs:', error);
+                }
             } finally {
                 setLoading(false);
             }
         };
-        if (user) fetchRFQs();
+        if (user) fetchRFQs(controller.signal);
+        return () => controller.abort();
     }, [user]);
 
     if (!user) return <div className="container" style={{ padding: '100px', textAlign: 'center' }}>Please login to view dashboard.</div>;

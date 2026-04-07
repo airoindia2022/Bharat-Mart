@@ -65,6 +65,10 @@ export const getProducts = async (req, res) => {
         });
     }
 
+    if (req.query.seller) {
+        matchConditions.push({ seller: req.query.seller });
+    }
+
     if (!req.user || req.user.role === 'customer') {
         matchConditions.push({ isApproved: true });
     } else if (req.user.role === 'seller') {
@@ -78,12 +82,12 @@ export const getProducts = async (req, res) => {
 
     const query = matchConditions.length > 0 ? { $and: matchConditions } : {};
     
-    const products = await Product.find(query).populate('seller', 'name companyName');
+    const products = await Product.find(query).populate('seller', 'name companyName logoURL');
     res.json(products);
 };
 
 export const getProductById = async (req, res) => {
-    const product = await Product.findById(req.params.id).populate('seller', 'name companyName phoneNumber address');
+    const product = await Product.findById(req.params.id).populate('seller', 'name companyName phoneNumber address logoURL');
     if (product) {
         res.json(product);
     } else {

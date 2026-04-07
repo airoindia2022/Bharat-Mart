@@ -1,20 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import * as productService from '../services/product.service';
+import * as rfqService from '../services/rfq.service';
+import * as paymentService from '../services/payment.service';
+import * as statsService from '../services/stats.service';
 import { useAuth } from '../context/AuthContext';
 import { 
     Plus, Package, MessageSquare, Trash2, Edit, Loader2, 
     LayoutDashboard, ShoppingBag, Send, Settings, User, 
     Bell, ChevronRight, CheckCircle, Clock, ExternalLink,
-    PieChart as LucidePieChart, Briefcase, IndianRupee, TrendingUp, Inbox, BarChart3
+    PieChart as LucidePieChart, Briefcase, IndianRupee, TrendingUp, Inbox, BarChart3, Camera
 } from 'lucide-react';
 import { 
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     BarChart, Bar, Cell, AreaChart, Area
 } from 'recharts';
+import PayoutsAndBank from '../components/seller/PayoutsAndBank';
 
 // Market Snapshot images removed in favor of dynamic stats
 const SellerDashboard = () => {
-    const { user, updateProfile } = useAuth();
+    const navigate = useNavigate();
+    const { user, updateProfile, uploadLogo } = useAuth();
     const [products, setProducts] = useState([]);
     const [rfqs, setRfqs] = useState([]);
     const [orders, setOrders] = useState([]);
@@ -62,12 +68,14 @@ const SellerDashboard = () => {
     };
 
     useEffect(() => {
+        const controller = new AbortController();
         if (user) {
-            fetchProducts();
-            fetchRFQs();
-            fetchOrders();
-            fetchStats();
+            fetchProducts(controller.signal);
+            fetchRFQs(controller.signal);
+            fetchOrders(controller.signal);
+            fetchStats(controller.signal);
         }
+        return () => controller.abort();
     }, [user]);
 
     const handleSpecChange = (index, field, value) => {
@@ -108,10 +116,9 @@ const SellerDashboard = () => {
         setShowAddModal(true);
     };
 
-    const fetchProducts = async () => {
+    const fetchProducts = async (signal) => {
         try {
-            const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            const { data } = await axios.get('http://localhost:5000/api/products', config);
+            const data = await productService.getProducts({}, signal);
             
             // Calculate market stats from all products
             const categoryCounts = {};
@@ -131,33 +138,42 @@ const SellerDashboard = () => {
             const sellerProducts = data.filter(p => p.seller && p.seller._id === user._id);
             setProducts(sellerProducts);
         } catch (error) {
-            console.error('Failed to fetch products:', error);
+            if (error.name !== 'AbortError') {
+                console.error('Failed to fetch products:', error);
+            }
         }
     };
 
-    const fetchRFQs = async () => {
+    const fetchRFQs = async (signal) => {
         try {
-            const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            const { data } = await axios.get('http://localhost:5000/api/rfq', config);
+            const data = await rfqService.getRFQs({}, signal);
             setRfqs(data);
-        } catch (error) {} finally { setLoading(false); }
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Failed to fetch RFQs:', error);
+            }
+        } finally { setLoading(false); }
     };
 
-    const fetchOrders = async () => {
+    const fetchOrders = async (signal) => {
         try {
-            const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            const { data } = await axios.get('http://localhost:5000/api/payment/seller-orders', config);
+            const data = await paymentService.getSellerOrders(signal);
             setOrders(data);
-        } catch (error) {}
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error('Failed to fetch orders:', error);
+            }
+        }
     };
 
-    const fetchStats = async () => {
+    const fetchStats = async (signal) => {
         try {
-            const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            const { data } = await axios.get('http://localhost:5000/api/stats/seller', config);
+            const data = await statsService.getSellerStats(signal);
             setStats(data);
         } catch (error) {
-            console.error('Failed to fetch stats:', error);
+            if (error.name !== 'AbortError') {
+                console.error('Failed to fetch stats:', error);
+            }
         }
     };
 
@@ -187,12 +203,11 @@ const SellerDashboard = () => {
         }
 
         try {
-            const config = { headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${user.token}` } };
             if (editMode) {
-                await axios.put(`http://localhost:5000/api/products/${editingProductId}`, formData, config);
+                await productService.updateProduct(editingProductId, formData);
                 alert('Product updated successfully!');
             } else {
-                await axios.post('http://localhost:5000/api/products', formData, config);
+                await productService.createProduct(formData);
                 alert('Product created successfully!');
             }
             setShowAddModal(false);
@@ -222,10 +237,30 @@ const SellerDashboard = () => {
     const handleDeleteProduct = async (id) => {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
-                const config = { headers: { Authorization: `Bearer ${user.token}` } };
-                await axios.delete(`http://localhost:5000/api/products/${id}`, config);
+                await productService.deleteProduct(id);
                 fetchProducts();
-            } catch (error) {}
+            } catch (error) {
+                console.error('Failed to delete product:', error);
+            }
+        }
+    };
+
+    const handleLogoStatusChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('logo', file);
+
+        try {
+            setUploading(true);
+            await uploadLogo(formData);
+            alert('Logo uploaded successfully!');
+        } catch (error) {
+            console.error('Logo upload failed:', error);
+            alert('Failed to upload logo');
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -280,9 +315,14 @@ const SellerDashboard = () => {
         <div style={{ display: 'flex', minHeight: 'calc(100vh - 64px)', backgroundColor: 'var(--background)', paddingTop: '20px' }}>
             {/* Sidebar */}
             <aside style={{ width: '280px', padding: '0 20px', borderRight: '1px solid var(--border)', position: 'sticky', top: '84px', height: 'calc(100vh - 104px)' }}>
-                <div style={{ marginBottom: '30px', padding: '0 16px' }}>
-                    <h2 style={{ fontSize: '1.2rem', color: 'var(--foreground)' }}>Seller Portal</h2>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--secondary)' }}>{user.companyName || 'Business Owner'}</p>
+                <div style={{ marginBottom: '30px', padding: '0 16px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    {user.logoURL && (
+                        <img src={user.logoURL} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />
+                    )}
+                    <div>
+                        <h2 style={{ fontSize: '1.2rem', color: 'var(--foreground)' }}>Seller Portal</h2>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--secondary)' }}>{user.companyName || 'Business Owner'}</p>
+                    </div>
                 </div>
                 
                 <SidebarItem id="dashboard" icon={LayoutDashboard} label="Dashboard Overview" />
@@ -294,15 +334,25 @@ const SellerDashboard = () => {
                 
                 <div style={{ marginTop: 'auto', padding: '20px', backgroundColor: 'var(--accent)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <User size={20} />
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                            {user.logoURL ? (
+                                <img src={user.logoURL} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                            ) : (
+                                <User size={20} />
+                            )}
                         </div>
                         <div>
                             <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--foreground)' }}>{user.name.split(' ')[0]}</p>
                             <p style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>Verified Seller</p>
                         </div>
                     </div>
-                    <button className="btn btn-outline" style={{ width: '100%', fontSize: '0.8rem', justifyContent: 'center' }}>View Public Profile</button>
+                    <button 
+                        onClick={() => navigate(`/products?seller=${user._id}`)}
+                        className="btn btn-outline" 
+                        style={{ width: '100%', fontSize: '0.8rem', justifyContent: 'center' }}
+                    >
+                        View Public Profile
+                    </button>
                 </div>
             </aside>
 
@@ -311,10 +361,15 @@ const SellerDashboard = () => {
                 {view === 'dashboard' && (
                     <div className="fade-in">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '30px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                            {user.logoURL && (
+                                <img src={user.logoURL} style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />
+                            )}
                             <div>
                                 <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '5px', color: 'var(--foreground)' }}>Welcome back, {user.name.split(' ')[0]}!</h1>
                                 <p style={{ color: 'var(--secondary)' }}>Here's what's happening with your store today.</p>
                             </div>
+                        </div>
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button className="btn btn-outline" style={{ padding: '0.6rem' }}><Bell size={20} /></button>
                                 <button onClick={() => { setEditMode(false); setShowAddModal(true); setNewProduct({ name: '', description: '', category: '', price: '', minOrderQuantity: 1, packagingType: 'Standard', brand: 'Generic', deliveryTime: '3-4 Days', origin: 'Made in India', specifications: [{ key: '', value: '' }], countInStock: 10 }); setImages([]); }} className="btn btn-primary" style={{ padding: '0.6rem 1.2rem' }}>
@@ -587,8 +642,7 @@ const SellerDashboard = () => {
                                                             alert('Please enter a reply before responding.');
                                                             return;
                                                         }
-                                                        const config = { headers: { Authorization: `Bearer ${user.token}` } };
-                                                        await axios.put(`http://localhost:5000/api/rfq/${rfq._id}`, { status: 'responded', reply: replyText }, config);
+                                                        await rfqService.updateRFQStatus(rfq._id, { status: 'responded', reply: replyText });
                                                         fetchRFQs();
                                                         alert('Reply sent successfully!');
                                                     } catch (error) {
@@ -706,106 +760,7 @@ const SellerDashboard = () => {
                 )}
 
                 {view === 'payouts' && (
-                    <div className="fade-in">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                            <div>
-                                <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Payouts & Bank Settings</h1>
-                                <p style={{ color: 'var(--secondary)' }}>Manage your bank account for automatic transfers.</p>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-                            <div className="card">
-                                <h3 style={{ marginBottom: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <IndianRupee size={20} color="var(--primary)" /> Settlement Account
-                                </h3>
-                                <div style={{ padding: '15px', backgroundColor: 'var(--accent)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '20px' }}>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--secondary)', marginBottom: '10px' }}>Funds will be automatically transferred to this account after successful order completion.</p>
-                                    
-                                    {user.razorpayAccountId ? (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--success)', fontWeight: 600 }}>
-                                            <CheckCircle size={18} /> Razorpay Linked Account Active
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--warning)', fontWeight: 600 }}>
-                                            <Clock size={18} /> Account setup pending
-                                        </div>
-                                    )}
-                                </div>
-
-                                <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gap: '15px' }}>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Account Holder Name</label>
-                                        <input 
-                                            className="input" 
-                                            value={settingsData.accountHolderName} 
-                                            onChange={(e) => setSettingsData({...settingsData, accountHolderName: e.target.value})} 
-                                            placeholder="John Doe" 
-                                            required
-                                        />
-                                    </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Bank Name</label>
-                                            <input 
-                                                className="input" 
-                                                value={settingsData.bankName} 
-                                                onChange={(e) => setSettingsData({...settingsData, bankName: e.target.value})} 
-                                                placeholder="HDFC Bank" 
-                                                required
-                                            />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600 }}>IFSC Code</label>
-                                            <input 
-                                                className="input" 
-                                                value={settingsData.ifscCode} 
-                                                onChange={(e) => setSettingsData({...settingsData, ifscCode: e.target.value})} 
-                                                placeholder="HDFC0001234" 
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600 }}>Account Number</label>
-                                        <input 
-                                            className="input" 
-                                            type="password"
-                                            value={settingsData.accountNumber} 
-                                            onChange={(e) => setSettingsData({...settingsData, accountNumber: e.target.value})} 
-                                            placeholder="XXXX XXXX XXXX" 
-                                            required
-                                        />
-                                    </div>
-                                    <button type="submit" className="btn btn-primary" style={{ marginTop: '10px', width: '100%', justifyContent: 'center' }}>
-                                        Save Bank Details
-                                    </button>
-                                </form>
-                            </div>
-
-                            <div className="card">
-                                <h3 style={{ marginBottom: '20px', fontWeight: 700 }}>Earnings Overview</h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', borderRadius: '12px', background: 'var(--accent)' }}>
-                                        <span style={{ color: 'var(--secondary)' }}>Total Sales</span>
-                                        <span style={{ fontWeight: 700 }}>₹{stats?.totalRevenue?.toFixed(2) || '0.00'}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', borderRadius: '12px', background: 'var(--accent)' }}>
-                                        <span style={{ color: 'var(--secondary)' }}>Platform Fee (10%)</span>
-                                        <span style={{ fontWeight: 700, color: 'var(--error)' }}>-₹{(stats?.totalRevenue * 0.10).toFixed(2) || '0.00'}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', borderRadius: '12px', background: 'var(--success-bg)', color: 'var(--success)' }}>
-                                        <span style={{ fontWeight: 600 }}>Net Earnings</span>
-                                        <span style={{ fontWeight: 800, fontSize: '1.2rem' }}>₹{stats?.netEarnings?.toFixed(2) || '0.00'}</span>
-                                    </div>
-
-                                    <div style={{ marginTop: '20px', padding: '15px', borderRadius: '12px', border: '1px dashed var(--border)', textAlign: 'center' }}>
-                                        <p style={{ fontSize: '0.85rem', color: 'var(--secondary)' }}>Next automated transfer will occur instantly after each successful order payment verification.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <PayoutsAndBank stats={stats} orders={orders} />
                 )}
 
                 {view === 'settings' && (
@@ -813,8 +768,18 @@ const SellerDashboard = () => {
                         <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '30px' }}>Store Settings</h1>
                         <div className="card" style={{ maxWidth: '600px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '30px' }}>
-                                <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
-                                    {user.name.charAt(0)}
+                                <div style={{ position: 'relative' }}>
+                                    {user.logoURL ? (
+                                        <img src={user.logoURL} style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} alt="Logo" />
+                                    ) : (
+                                        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+                                            {user.name.charAt(0)}
+                                        </div>
+                                    )}
+                                    <label htmlFor="logo-upload" style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: 'var(--primary)', color: 'white', padding: '6px', borderRadius: '50%', cursor: 'pointer', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Camera size={14} />
+                                    </label>
+                                    <input id="logo-upload" type="file" style={{ display: 'none' }} accept="image/*" onChange={handleLogoStatusChange} disabled={uploading} />
                                 </div>
                                 <div>
                                     <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{user.companyName || user.name}</h3>

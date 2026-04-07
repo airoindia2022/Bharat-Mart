@@ -33,7 +33,7 @@ const orderSchema = mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Paid', 'Failed'],
+        enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
         default: 'Pending'
     },
     isTransferredToSeller: {
