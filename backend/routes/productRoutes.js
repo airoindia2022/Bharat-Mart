@@ -7,7 +7,8 @@ import {
     getProductById, 
     updateProduct, 
     deleteProduct,
-    approveProduct
+    approveProduct,
+    createProductReview
 } from '../controllers/productController.js';
 import { protect, seller, admin, restoreUser } from '../middleware/authMiddleware.js';
 
@@ -19,10 +20,11 @@ router.route('/')
     .post(protect, seller, upload.array('images', 5), createProduct);
 
 router.route('/:id')
-    .get(getProductById)
+    .get(restoreUser, getProductById)
     .put(protect, seller, upload.array('images', 5), updateProduct)
     .delete(protect, seller, deleteProduct);
 
+router.post('/:id/reviews', protect, createProductReview);
 router.put('/:id/approve', protect, admin, approveProduct);
 
 export default router;

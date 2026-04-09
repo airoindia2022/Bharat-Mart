@@ -66,3 +66,14 @@ export const refundOrderManual = async (orderId) => {
     const { data } = await axiosInstance.put(`/payment/refund-order/${orderId}`);
     return data;
 };
+
+/**
+ * Update the status of an order
+ * @param {string} orderId - ID of the order to update
+ * @param {string} status - New order status
+ * @returns {Promise<Object>} Updated order data
+ */
+export const updateOrderStatus = async (orderId, status) => {
+    const { data } = await axiosInstance.put(`/payment/order/${orderId}/status`, { status });
+    return data;
+};

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import * as productService from '../services/product.service';
-import { Search, ChevronRight, Truck, ShieldCheck, Headphones, MapPin, MessageSquare, Info } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { Search, ChevronRight, Truck, ShieldCheck, Headphones, MapPin, ShoppingCart, Info } from 'lucide-react';
 
 const Home = () => {
     const [productsByCategory, setProductsByCategory] = useState({});
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const { addToCart } = useCart();
     const navigate = useNavigate();
 
     const handleSearch = (e) => {
@@ -14,6 +16,10 @@ const Home = () => {
         if (searchTerm.trim()) {
             navigate(`/products?keyword=${encodeURIComponent(searchTerm)}`);
         }
+    };
+
+    const handleAddToCart = (product) => {
+        addToCart(product);
     };
 
     useEffect(() => {
@@ -33,7 +39,7 @@ const Home = () => {
                 });
                 setProductsByCategory(grouped);
             } catch (error) {
-                if (error.name !== 'AbortError') {
+                if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
                     console.error('Error fetching products:', error);
                 }
             } finally {
@@ -47,7 +53,7 @@ const Home = () => {
     return (
         <div className="home">
             {/* Hero Section */}
-            <header style={{ 
+            <header style={{
                 background: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80")',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
@@ -59,28 +65,28 @@ const Home = () => {
                 textAlign: 'center'
             }}>
                 <div className="container">
-                    <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>India's Largest B2B Marketplace</h1>
+                    <h1 style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>India's Largest B2C Marketplace</h1>
                     <p style={{ fontSize: '1.2rem', marginBottom: '2rem', opacity: 0.9 }}>Connecting Buyers with Genuine Sellers & Manufacturers</p>
-                    
-                    <form onSubmit={handleSearch} style={{ 
-                        display: 'flex', 
-                        maxWidth: '800px', 
-                        margin: '0 auto', 
+
+                    <form onSubmit={handleSearch} style={{
+                        display: 'flex',
+                        maxWidth: '800px',
+                        margin: '0 auto',
                         backgroundColor: 'white',
                         transition: 'none',
                         borderRadius: '30px',
                         overflow: 'hidden',
                         padding: '5px'
                     }}>
-                        <input 
-                            type="text" 
-                            placeholder="Search Products, Categories, Manufacturers..." 
+                        <input
+                            type="text"
+                            placeholder="Search Products, Categories, Manufacturers..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ 
-                                flex: 1, 
-                                border: 'none', 
-                                padding: '15px 25px', 
+                            style={{
+                                flex: 1,
+                                border: 'none',
+                                padding: '15px 25px',
                                 outline: 'none',
                                 color: '#333',
                                 fontSize: '1rem'
@@ -137,9 +143,9 @@ const Home = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '25px' }}>
                                 {products.map(product => (
                                     <div key={product._id} className="card product-card fade-in" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                        <img 
-                                            src={product.images?.[0] || 'https://via.placeholder.com/300x200?text=No+Image'} 
-                                            alt={product.name} 
+                                        <img
+                                            src={product.images?.[0] || 'https://via.placeholder.com/300x200?text=No+Image'}
+                                            alt={product.name}
                                             style={{ width: '100%', height: '200px', objectFit: 'cover' }}
                                         />
                                         <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -152,19 +158,22 @@ const Home = () => {
                                             <p style={{ color: 'var(--secondary)', fontSize: '0.8rem', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                 <MapPin size={12} /> {product.seller?.address || 'India'}
                                             </p>
-                                            
+
                                             <div style={{ marginTop: 'auto' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                                                     <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--brand-green)' }}>₹{product.price} / unit</span>
-                                                    <span style={{ fontSize: '0.8rem', color: 'var(--secondary)' }}>Min. Order: {product.minOrderQuantity}</span>
                                                 </div>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                    <Link to={`/products/${product._id}`} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '10px' }}>
-                                                        <MessageSquare size={16} /> Contact Supplier
-                                                    </Link>
                                                     <Link to={`/products/${product._id}`} className="btn btn-outline" style={{ width: '100%', justifyContent: 'center', padding: '8px', fontSize: '0.9rem' }}>
                                                         <Info size={16} /> View Details
                                                     </Link>
+                                                    <button 
+                                                        onClick={() => handleAddToCart(product)} 
+                                                        className="btn btn-primary" 
+                                                        style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
+                                                    >
+                                                        <ShoppingCart size={16} /> Add to Cart
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -178,10 +187,10 @@ const Home = () => {
 
             {/* CTA Section */}
             <section style={{ padding: '80px 0' }}>
-                <div className="container" style={{ 
-                    backgroundColor: 'var(--brand-blue)', 
-                    color: 'white', 
-                    borderRadius: '20px', 
+                <div className="container" style={{
+                    backgroundColor: 'var(--brand-blue)',
+                    color: 'white',
+                    borderRadius: '20px',
                     padding: '60px',
                     display: 'flex',
                     alignItems: 'center',

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import * as productService from '../services/product.service';
 import * as authService from '../services/auth.service';
-import { Search, Filter, ShoppingCart, Info, MapPin, ShieldCheck, MessageSquare, ArrowLeft } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { Search, Filter, ShoppingCart, Info, MapPin, ShieldCheck, ArrowLeft } from 'lucide-react';
 
 const ProductList = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { addToCart } = useCart();
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Categories');
     const [minPrice, setMinPrice] = useState('');
@@ -23,7 +25,7 @@ const ProductList = () => {
         const categoryParam = queryParams.get('category');
         const keywordParam = queryParams.get('keyword');
         const sellerParam = queryParams.get('seller');
-        
+
         if (categoryParam) {
             setSelectedCategory(categoryParam);
         }
@@ -36,7 +38,7 @@ const ProductList = () => {
         } else {
             setSellerInfo(null);
         }
-        
+
         fetchProducts({ keyword: keywordParam || '', seller: sellerParam || '' }, controller.signal);
         return () => controller.abort();
     }, [location.search]);
@@ -46,7 +48,9 @@ const ProductList = () => {
             const data = await authService.getPublicProfile(sellerId, signal);
             setSellerInfo(data);
         } catch (error) {
-            console.error('Error fetching seller info:', error);
+            if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+                console.error('Error fetching seller info:', error);
+            }
         }
     };
 
@@ -56,7 +60,7 @@ const ProductList = () => {
             const data = await productService.getProducts(filters, signal);
             setProducts(data);
         } catch (error) {
-            if (error.name !== 'AbortError') {
+            if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
                 console.error('Error fetching products:', error);
             }
         } finally {
@@ -67,6 +71,10 @@ const ProductList = () => {
     const handleSearch = (e) => {
         e.preventDefault();
         navigate(`/products?keyword=${encodeURIComponent(search)}`);
+    };
+
+    const handleAddToCart = (product) => {
+        addToCart(product);
     };
 
     const uniqueCategories = ['All Categories', ...new Set(products.map(p => p.category).filter(Boolean))];
@@ -101,18 +109,18 @@ const ProductList = () => {
                     </div>
                     <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
                         <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', maxWidth: '400px', width: '100%' }}>
-                            <input 
-                                type="text" 
-                                className="input" 
-                                placeholder="Search products..." 
+                            <input
+                                type="text"
+                                className="input"
+                                placeholder="Search products..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 style={{ flex: 1 }}
                             />
                             <button type="submit" className="btn btn-primary">Search</button>
                         </form>
-                        <button 
-                            className="btn btn-outline" 
+                        <button
+                            className="btn btn-outline"
                             onClick={() => setShowFilters(!showFilters)}
                             style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
                         >
@@ -125,8 +133,8 @@ const ProductList = () => {
                     <div className="card" style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end', width: '100%' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '200px' }}>
                             <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Category</label>
-                            <select 
-                                className="input" 
+                            <select
+                                className="input"
                                 style={{ cursor: 'pointer' }}
                                 value={selectedCategory}
                                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -138,9 +146,9 @@ const ProductList = () => {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                             <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Min Price (₹)</label>
-                            <input 
-                                type="number" 
-                                className="input" 
+                            <input
+                                type="number"
+                                className="input"
                                 placeholder="0"
                                 value={minPrice}
                                 onChange={(e) => setMinPrice(e.target.value)}
@@ -149,9 +157,9 @@ const ProductList = () => {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                             <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Max Price (₹)</label>
-                            <input 
-                                type="number" 
-                                className="input" 
+                            <input
+                                type="number"
+                                className="input"
                                 placeholder="Any"
                                 value={maxPrice}
                                 onChange={(e) => setMaxPrice(e.target.value)}
@@ -159,8 +167,8 @@ const ProductList = () => {
                             />
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '10px' }}>
-                            <input 
-                                type="checkbox" 
+                            <input
+                                type="checkbox"
                                 id="verifiedOnly"
                                 checked={verifiedOnly}
                                 onChange={(e) => setVerifiedOnly(e.target.checked)}
@@ -171,8 +179,8 @@ const ProductList = () => {
                             </label>
                         </div>
                         <div style={{ marginLeft: 'auto', paddingBottom: '5px' }}>
-                            <button 
-                                className="btn btn-outline" 
+                            <button
+                                className="btn btn-outline"
                                 onClick={() => {
                                     setSelectedCategory('All Categories');
                                     setMinPrice('');
@@ -198,9 +206,9 @@ const ProductList = () => {
                     ) : (
                         filteredProducts.map(product => (
                             <div key={product._id} className="card" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                <img 
-                                    src={product.images?.[0] || 'https://via.placeholder.com/300x200?text=No+Image'} 
-                                    alt={product.name} 
+                                <img
+                                    src={product.images?.[0] || 'https://via.placeholder.com/300x200?text=No+Image'}
+                                    alt={product.name}
                                     style={{ width: '100%', height: '200px', objectFit: 'cover' }}
                                 />
                                 <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -216,19 +224,22 @@ const ProductList = () => {
                                     <p style={{ color: 'var(--secondary)', fontSize: '0.8rem', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <MapPin size={12} /> {product.seller?.address || 'India'}
                                     </p>
-                                    
+
                                     <div style={{ marginTop: 'auto' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                                             <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--brand-green)' }}>₹{product.price} / unit</span>
-                                            <span style={{ fontSize: '0.8rem', color: 'var(--secondary)' }}>Min. Order: {product.minOrderQuantity}</span>
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                            <Link to={`/products/${product._id}`} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '10px' }}>
-                                                <MessageSquare size={16} /> Contact Supplier
-                                            </Link>
                                             <Link to={`/products/${product._id}`} className="btn btn-outline" style={{ width: '100%', justifyContent: 'center', padding: '8px', fontSize: '0.9rem' }}>
                                                 <Info size={16} /> View Details
                                             </Link>
+                                            <button 
+                                                onClick={() => handleAddToCart(product)} 
+                                                className="btn btn-primary" 
+                                                style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
+                                            >
+                                                <ShoppingCart size={16} /> Add to Cart
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

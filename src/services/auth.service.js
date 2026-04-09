@@ -71,12 +71,26 @@ export const uploadLogo = async (formData) => {
     return data;
 };
 
-/**
- * Fetch a user's public profile
- * @param {string} id - User ID
- * @returns {Promise<Object>} The public profile data
- */
 export const getPublicProfile = async (id, signal) => {
     const { data } = await axiosInstance.get(`/users/${id}`, { signal });
+    return data;
+};
+
+/**
+ * Toggle product in user's wishlist
+ * @param {string} productId - Product ID
+ * @returns {Promise<Object>} Response with wishlist status
+ */
+export const toggleWishlist = async (productId) => {
+    const { data } = await axiosInstance.post('/users/wishlist', { productId });
+    return data;
+};
+
+/**
+ * Fetch authenticated user's wishlist
+ * @returns {Promise<Array>} List of wishlisted products
+ */
+export const getWishlist = async () => {
+    const { data } = await axiosInstance.get('/users/wishlist');
     return data;
 };

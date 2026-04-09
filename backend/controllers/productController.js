@@ -6,7 +6,7 @@ export const createProduct = async (req, res) => {
         console.log('Create Product Request Body:', req.body);
         console.log('Create Product Files:', req.files);
         
-        const { name, description, category, price, minOrderQuantity, packagingType, brand, deliveryTime, origin, specifications, countInStock } = req.body;
+        const { name, description, category, price, packagingType, brand, deliveryTime, origin, specifications, countInStock } = req.body;
         const images = req.files ? req.files.map(file => file.path) : [];
 
         // Parse specifications if it's sent as a JSON string
@@ -25,7 +25,6 @@ export const createProduct = async (req, res) => {
             description,
             category,
             price,
-            minOrderQuantity,
             packagingType,
             brand,
             deliveryTime,
@@ -72,12 +71,12 @@ export const getProducts = async (req, res) => {
     if (!req.user || req.user.role === 'customer') {
         matchConditions.push({ isApproved: true });
     } else if (req.user.role === 'seller') {
-        matchConditions.push({
-            $or: [
-                { isApproved: true },
-                { seller: req.user._id }
-            ]
-        });
+        // If the seller is specifically viewing their own products, show all (including pending)
+        // Otherwise, in the general marketplace, only show approved products
+        const isViewingOwnProducts = req.query.seller && req.query.seller.toString() === req.user._id.toString();
+        if (!isViewingOwnProducts) {
+            matchConditions.push({ isApproved: true });
+        }
     }
 
     const query = matchConditions.length > 0 ? { $and: matchConditions } : {};
@@ -89,6 +88,15 @@ export const getProducts = async (req, res) => {
 export const getProductById = async (req, res) => {
     const product = await Product.findById(req.params.id).populate('seller', 'name companyName phoneNumber address logoURL');
     if (product) {
+        // Check if product is approved
+        if (!product.isApproved) {
+            const isAdmin = req.user && req.user.role === 'admin';
+            const isOwner = req.user && product.seller && product.seller._id.toString() === req.user._id.toString();
+            
+            if (!isAdmin && !isOwner) {
+                return res.status(403).json({ message: 'Product is pending administrative approval' });
+            }
+        }
         res.json(product);
     } else {
         res.status(404).json({ message: 'Product not found' });
@@ -105,7 +113,6 @@ export const updateProduct = async (req, res) => {
         product.description = req.body.description || product.description;
         product.category = req.body.category || product.category;
         product.price = req.body.price || product.price;
-        product.minOrderQuantity = req.body.minOrderQuantity || product.minOrderQuantity;
         product.packagingType = req.body.packagingType || product.packagingType;
         product.brand = req.body.brand || product.brand;
         product.deliveryTime = req.body.deliveryTime || product.deliveryTime;
@@ -152,6 +159,40 @@ export const approveProduct = async (req, res) => {
         product.isApproved = true;
         const updatedProduct = await product.save();
         res.json(updatedProduct);
+    } else {
+        res.status(404).json({ message: 'Product not found' });
+    }
+};
+
+export const createProductReview = async (req, res) => {
+    const { rating, comment } = req.body;
+    const product = await Product.findById(req.params.id);
+
+    if (product) {
+        const alreadyReviewed = product.reviews.find(
+            (r) => r.user.toString() === req.user._id.toString()
+        );
+
+        if (alreadyReviewed) {
+            res.status(400).json({ message: 'Product already reviewed' });
+            return;
+        }
+
+        const review = {
+            name: req.user.name,
+            rating: Number(rating),
+            comment,
+            user: req.user._id,
+        };
+
+        product.reviews.push(review);
+        product.numReviews = product.reviews.length;
+        product.rating =
+            product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+            product.reviews.length;
+
+        await product.save();
+        res.status(201).json({ message: 'Review added' });
     } else {
         res.status(404).json({ message: 'Product not found' });
     }

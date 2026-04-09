@@ -11,7 +11,8 @@ export const getAdminStats = async (req, res) => {
         const totalSellers = await User.countDocuments({ role: 'seller' });
         const totalProducts = await Product.countDocuments();
         
-        const paidOrders = await Order.find({ status: 'Paid' });
+        const paidStatuses = ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'];
+        const paidOrders = await Order.find({ status: { $in: paidStatuses } });
         const totalRevenue = paidOrders.reduce((acc, current) => acc + current.amount, 0);
         const totalProfit = totalRevenue * 0.10;
 
@@ -22,7 +23,7 @@ export const getAdminStats = async (req, res) => {
         const salesByMonth = await Order.aggregate([
             { 
                 $match: { 
-                    status: 'Paid',
+                    status: { $in: ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'] },
                     createdAt: { $gte: sixMonthsAgo }
                 } 
             },
@@ -73,7 +74,8 @@ export const getSellerStats = async (req, res) => {
     try {
         const totalProducts = await Product.countDocuments({ seller: req.user._id });
         
-        const sellerOrders = await Order.find({ seller: req.user._id, status: 'Paid' });
+        const paidStatuses = ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'];
+        const sellerOrders = await Order.find({ seller: req.user._id, status: { $in: paidStatuses } });
         const totalRevenue = sellerOrders.reduce((acc, current) => acc + current.amount, 0);
         const netEarnings = totalRevenue * 0.90;
 
@@ -85,7 +87,7 @@ export const getSellerStats = async (req, res) => {
             { 
                 $match: { 
                     seller: req.user._id,
-                    status: 'Paid',
+                    status: { $in: ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'] },
                     createdAt: { $gte: sixMonthsAgo }
                 } 
             },
@@ -107,7 +109,7 @@ export const getSellerStats = async (req, res) => {
             { 
                 $match: { 
                     seller: req.user._id,
-                    status: 'Paid'
+                    status: { $in: ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'] }
                 } 
             },
             {

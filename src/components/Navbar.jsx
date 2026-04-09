@@ -2,11 +2,13 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Sun, Moon, LogIn, User, Search, ShoppingBag } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { Sun, Moon, LogIn, User, Search, ShoppingBag, ShoppingCart } from 'lucide-react';
 
 const Navbar = () => {
     const { user, logout } = useAuth();
     const { isDarkMode, toggleTheme } = useTheme();
+    const { getCartCount } = useCart();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -36,9 +38,36 @@ const Navbar = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                     <Link to="/products" className="btn btn-outline" style={{ border: 'none' }}>Products</Link>
                     
+                    <Link to="/cart" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <ShoppingCart size={22} />
+                        {getCartCount() > 0 && (
+                            <span style={{ 
+                                position: 'absolute', 
+                                top: '-8px', 
+                                right: '-12px', 
+                                backgroundColor: 'var(--brand-orange)', 
+                                color: 'white', 
+                                borderRadius: '50%', 
+                                width: '18px', 
+                                height: '18px', 
+                                fontSize: '0.7rem', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                fontWeight: 'bold'
+                            }}>
+                                {getCartCount()}
+                            </span>
+                        )}
+                    </Link>
+
                     {user ? (
                         <>
-                            {user.role === 'customer' && <Link to="/customer-dashboard">RFQs</Link>}
+                            {user.role === 'customer' && (
+                                <>
+                                    <Link to="/orders">Orders</Link>
+                                </>
+                            )}
                             {user.role === 'seller' && <Link to="/seller-dashboard">Seller Center</Link>}
                             {user.role === 'admin' && <Link to="/admin-dashboard">Admin Panel</Link>}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

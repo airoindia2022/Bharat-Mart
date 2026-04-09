@@ -4,8 +4,8 @@ A full-stack MERN B2B marketplace application inspired by IndiaMart, featuring l
 
 ## Features
 - **User Roles**: 
-  - **Customer (Buyer)**: Browse products, search, send RFQs (Request for Quotation).
-  - **Seller (Supplier)**: List products (pending admin approval), manage catalog, view inquiries from buyers.
+  - **Customer (Buyer)**: Browse products, search, add to wishlist, and place orders.
+  - **Seller (Supplier)**: List products (pending admin approval), manage catalog, and fulfill orders.
   - **Admin**: Approve/Reject products, manage all users and products.
 - **Image Storage**: Cloudinary integration for high-performance image handling.
 - **Theming**: Premium Light and Dark mode support.

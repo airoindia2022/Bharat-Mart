@@ -1,35 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as productService from '../services/product.service';
-import * as rfqService from '../services/rfq.service';
 import * as paymentService from '../services/payment.service';
 import * as statsService from '../services/stats.service';
 import { useAuth } from '../context/AuthContext';
-import { 
-    Plus, Package, MessageSquare, Trash2, Edit, Loader2, 
-    LayoutDashboard, ShoppingBag, Send, Settings, User, 
+import {
+    Plus, Package, MessageSquare, Trash2, Edit, Loader2,
+    LayoutDashboard, ShoppingBag, Send, Settings, User,
     Bell, ChevronRight, CheckCircle, Clock, ExternalLink,
     PieChart as LucidePieChart, Briefcase, IndianRupee, TrendingUp, Inbox, BarChart3, Camera
 } from 'lucide-react';
-import { 
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+import {
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Cell, AreaChart, Area
 } from 'recharts';
 import PayoutsAndBank from '../components/seller/PayoutsAndBank';
 
 // Market Snapshot images removed in favor of dynamic stats
+const CATEGORY_SPECS = {
+    'Medical': [
+        { key: 'Grade', value: 'Medical Grade' },
+        { key: 'Certification', value: 'ISO/CE/FDA' },
+        { key: 'Material', value: '' },
+        { key: 'Usage', value: 'Clinical/Hospital' }
+    ],
+    'Nutrition': [
+        { key: 'Shelf Life', value: '12 Months' },
+        { key: 'Form', value: 'Powder/Liquid' },
+        { key: 'Veg/Non-Veg', value: 'Veg' },
+        { key: 'Key Ingredients', value: '' }
+    ],
+    'Cosmetics': [
+        { key: 'Skin Type', value: 'All' },
+        { key: 'Organic', value: 'Yes' },
+        { key: 'Main Ingredient', value: '' },
+        { key: 'Certification', value: 'Ayush/GMP' }
+    ],
+    'Fashion & Apparel': [
+        { key: 'Fabric', value: 'Cotton/Polyester' },
+        { key: 'GSM', value: '' },
+        { key: 'Size Range', value: 'S-XL' },
+        { key: 'Pattern', value: 'Plain/Printed' }
+    ],
+    'Computer accessories': [
+        { key: 'Type', value: 'Peripheral' },
+        { key: 'Connectivity', value: 'USB/Wireless' },
+        { key: 'Compatibility', value: 'Windows/macOS' },
+        { key: 'Warranty', value: '1 Year' }
+    ]
+};
+
 const SellerDashboard = () => {
     const navigate = useNavigate();
     const { user, updateProfile, uploadLogo } = useAuth();
     const [products, setProducts] = useState([]);
-    const [rfqs, setRfqs] = useState([]);
     const [orders, setOrders] = useState([]);
     const [marketStats, setMarketStats] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [view, setView] = useState('dashboard'); // 'dashboard', 'products', 'rfqs', 'settings', 'orders'
+    const [view, setView] = useState('dashboard'); // 'dashboard', 'products', 'settings', 'orders'
     const [replies, setReplies] = useState({});
-    
+
     // Settings state
     const [settingsData, setSettingsData] = useState({
         companyName: user?.companyName || '',
@@ -42,9 +73,9 @@ const SellerDashboard = () => {
     });
 
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newProduct, setNewProduct] = useState({ 
-        name: '', description: '', category: '', price: '', 
-        minOrderQuantity: 1, packagingType: 'Standard', brand: 'Generic', 
+    const [newProduct, setNewProduct] = useState({
+        name: '', description: '', category: '', price: '',
+        packagingType: 'Standard', brand: 'Generic',
         deliveryTime: '3-4 Days', origin: 'Made in India',
         specifications: [{ key: '', value: '' }],
         countInStock: 10
@@ -71,26 +102,35 @@ const SellerDashboard = () => {
         const controller = new AbortController();
         if (user) {
             fetchProducts(controller.signal);
-            fetchRFQs(controller.signal);
             fetchOrders(controller.signal);
             fetchStats(controller.signal);
         }
         return () => controller.abort();
     }, [user]);
 
+    const handleCategoryChange = (e) => {
+        const category = e.target.value;
+        const specs = CATEGORY_SPECS[category] || [{ key: '', value: '' }];
+        setNewProduct(prev => ({ 
+            ...prev, 
+            category,
+            specifications: specs
+        }));
+    };
+
     const handleSpecChange = (index, field, value) => {
         const updatedSpecs = [...newProduct.specifications];
         updatedSpecs[index][field] = value;
         setNewProduct({ ...newProduct, specifications: updatedSpecs });
     };
-    
+
     const addSpecification = () => {
-        setNewProduct({ 
-            ...newProduct, 
-            specifications: [...newProduct.specifications, { key: '', value: '' }] 
+        setNewProduct({
+            ...newProduct,
+            specifications: [...newProduct.specifications, { key: '', value: '' }]
         });
     };
-    
+
     const removeSpecification = (index) => {
         const updatedSpecs = newProduct.specifications.filter((_, i) => i !== index);
         setNewProduct({ ...newProduct, specifications: updatedSpecs });
@@ -104,7 +144,6 @@ const SellerDashboard = () => {
             description: product.description,
             category: product.category,
             price: product.price,
-            minOrderQuantity: product.minOrderQuantity,
             packagingType: product.packagingType || 'Standard',
             brand: product.brand || 'Generic',
             deliveryTime: product.deliveryTime || '3-4 Days',
@@ -118,49 +157,41 @@ const SellerDashboard = () => {
 
     const fetchProducts = async (signal) => {
         try {
-            const data = await productService.getProducts({}, signal);
-            
-            // Calculate market stats from all products
+            // Get all approved products for market snapshot
+            const marketData = await productService.getProducts({}, signal);
+
+            // Get seller's own products (including those pending approval)
+            const sellerData = await productService.getProducts({ seller: user._id }, signal);
+
+            // Calculate market stats from all approved products
             const categoryCounts = {};
-            data.forEach(p => {
+            marketData.forEach(p => {
                 const cat = p.category || 'Other';
                 categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
             });
-            
+
             const statsArray = Object.keys(categoryCounts).map((cat, index) => ({
                 id: index,
                 name: cat,
                 count: categoryCounts[cat]
             })).sort((a, b) => b.count - a.count).slice(0, 5); // top 5 categories
-            
-            setMarketStats(statsArray);
 
-            const sellerProducts = data.filter(p => p.seller && p.seller._id === user._id);
-            setProducts(sellerProducts);
+            setMarketStats(statsArray);
+            setProducts(sellerData);
         } catch (error) {
-            if (error.name !== 'AbortError') {
+            if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
                 console.error('Failed to fetch products:', error);
             }
         }
     };
 
-    const fetchRFQs = async (signal) => {
-        try {
-            const data = await rfqService.getRFQs({}, signal);
-            setRfqs(data);
-        } catch (error) {
-            if (error.name !== 'AbortError') {
-                console.error('Failed to fetch RFQs:', error);
-            }
-        } finally { setLoading(false); }
-    };
 
     const fetchOrders = async (signal) => {
         try {
             const data = await paymentService.getSellerOrders(signal);
             setOrders(data);
         } catch (error) {
-            if (error.name !== 'AbortError') {
+            if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
                 console.error('Failed to fetch orders:', error);
             }
         }
@@ -171,7 +202,7 @@ const SellerDashboard = () => {
             const data = await statsService.getSellerStats(signal);
             setStats(data);
         } catch (error) {
-            if (error.name !== 'AbortError') {
+            if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
                 console.error('Failed to fetch stats:', error);
             }
         }
@@ -188,7 +219,7 @@ const SellerDashboard = () => {
                 formData.append(key, newProduct[key]);
             }
         });
-        
+
         if (!editMode && images.length > 5) {
             alert('Maximum 5 images allowed');
             setUploading(false);
@@ -214,7 +245,7 @@ const SellerDashboard = () => {
             setEditMode(false);
             setEditingProductId(null);
             fetchProducts();
-            setNewProduct({ name: '', description: '', category: '', price: '', minOrderQuantity: 1, packagingType: 'Standard', brand: 'Generic', deliveryTime: '3-4 Days', origin: 'Made in India', specifications: [{ key: '', value: '' }], countInStock: 10 });
+            setNewProduct({ name: '', description: '', category: '', price: '', packagingType: 'Standard', brand: 'Generic', deliveryTime: '3-4 Days', origin: 'Made in India', specifications: [{ key: '', value: '' }], countInStock: 10 });
             setImages([]);
         } catch (error) {
             console.error('Submit product error:', error.response?.data || error.message);
@@ -264,9 +295,21 @@ const SellerDashboard = () => {
         }
     };
 
+    const handleOrderStatusUpdate = async (orderId, newStatus) => {
+        try {
+            await paymentService.updateOrderStatus(orderId, newStatus);
+            setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
+            // Also refresh stats since status affects revenue/sales charts
+            fetchStats();
+        } catch (error) {
+            console.error('Failed to update status', error);
+            alert('Failed to update status');
+        }
+    };
+
     if (!user || user.role !== 'seller') return <div className="container" style={{ padding: '100px', textAlign: 'center' }}>Access Denied.</div>;
 
-        const StatCard = ({ title, value, icon: Icon, color, bgColor, trend }) => (
+    const StatCard = ({ title, value, icon: Icon, color, bgColor, trend }) => (
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, minWidth: '200px', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '-10px', right: '-10px', opacity: 0.1 }}>
                 <Icon size={80} color={color} />
@@ -285,14 +328,14 @@ const SellerDashboard = () => {
     );
 
     const SidebarItem = ({ id, icon: Icon, label }) => (
-        <div 
+        <div
             onClick={() => setView(id)}
-            style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '12px', 
-                padding: '12px 16px', 
-                borderRadius: '12px', 
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 16px',
+                borderRadius: '12px',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 backgroundColor: view === id ? 'var(--primary)' : 'transparent',
@@ -303,11 +346,6 @@ const SellerDashboard = () => {
         >
             <Icon size={20} />
             <span style={{ fontWeight: 500 }}>{label}</span>
-            {id === 'rfqs' && rfqs.filter(r => r.status === 'pending').length > 0 && (
-                <span style={{ marginLeft: 'auto', background: 'var(--error)', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '10px' }}>
-                    {rfqs.filter(r => r.status === 'pending').length}
-                </span>
-            )}
         </div>
     );
 
@@ -324,14 +362,14 @@ const SellerDashboard = () => {
                         <p style={{ fontSize: '0.8rem', color: 'var(--secondary)' }}>{user.companyName || 'Business Owner'}</p>
                     </div>
                 </div>
-                
+
                 <SidebarItem id="dashboard" icon={LayoutDashboard} label="Dashboard Overview" />
                 <SidebarItem id="products" icon={ShoppingBag} label="My Products" />
-                <SidebarItem id="rfqs" icon={Send} label="Inquiries (RFQ)" />
+
                 <SidebarItem id="orders" icon={Inbox} label="Orders" />
                 <SidebarItem id="payouts" icon={IndianRupee} label="Payouts & Bank" />
                 <SidebarItem id="settings" icon={Settings} label="Store Settings" />
-                
+
                 <div style={{ marginTop: 'auto', padding: '20px', backgroundColor: 'var(--accent)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                         <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -346,9 +384,9 @@ const SellerDashboard = () => {
                             <p style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>Verified Seller</p>
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={() => navigate(`/products?seller=${user._id}`)}
-                        className="btn btn-outline" 
+                        className="btn btn-outline"
                         style={{ width: '100%', fontSize: '0.8rem', justifyContent: 'center' }}
                     >
                         View Public Profile
@@ -361,18 +399,18 @@ const SellerDashboard = () => {
                 {view === 'dashboard' && (
                     <div className="fade-in">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '30px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            {user.logoURL && (
-                                <img src={user.logoURL} style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />
-                            )}
-                            <div>
-                                <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '5px', color: 'var(--foreground)' }}>Welcome back, {user.name.split(' ')[0]}!</h1>
-                                <p style={{ color: 'var(--secondary)' }}>Here's what's happening with your store today.</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                {user.logoURL && (
+                                    <img src={user.logoURL} style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />
+                                )}
+                                <div>
+                                    <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '5px', color: 'var(--foreground)' }}>Welcome back, {user.name.split(' ')[0]}!</h1>
+                                    <p style={{ color: 'var(--secondary)' }}>Here's what's happening with your store today.</p>
+                                </div>
                             </div>
-                        </div>
                             <div style={{ display: 'flex', gap: '12px' }}>
                                 <button className="btn btn-outline" style={{ padding: '0.6rem' }}><Bell size={20} /></button>
-                                <button onClick={() => { setEditMode(false); setShowAddModal(true); setNewProduct({ name: '', description: '', category: '', price: '', minOrderQuantity: 1, packagingType: 'Standard', brand: 'Generic', deliveryTime: '3-4 Days', origin: 'Made in India', specifications: [{ key: '', value: '' }], countInStock: 10 }); setImages([]); }} className="btn btn-primary" style={{ padding: '0.6rem 1.2rem' }}>
+                                <button onClick={() => { setEditMode(false); setShowAddModal(true); setNewProduct({ name: '', description: '', category: '', price: '', packagingType: 'Standard', brand: 'Generic', deliveryTime: '3-4 Days', origin: 'Made in India', specifications: [{ key: '', value: '' }], countInStock: 10 }); setImages([]); }} className="btn btn-primary" style={{ padding: '0.6rem 1.2rem' }}>
                                     <Plus size={20} /> New Product
                                 </button>
                             </div>
@@ -380,30 +418,30 @@ const SellerDashboard = () => {
 
                         {/* Stats Grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-                            <StatCard 
-                                title="Total Products" 
-                                value={stats?.totalProducts || products.length} 
-                                icon={Package} 
-                                color="var(--primary)" 
+                            <StatCard
+                                title="Total Products"
+                                value={stats?.totalProducts || products.length}
+                                icon={Package}
+                                color="var(--primary)"
                             />
-                            <StatCard 
-                                title="Total Orders" 
-                                value={stats?.totalOrders || 0} 
-                                icon={ShoppingBag} 
-                                color="var(--success)" 
+                            <StatCard
+                                title="Total Orders"
+                                value={stats?.totalOrders || 0}
+                                icon={ShoppingBag}
+                                color="var(--success)"
                             />
-                            <StatCard 
-                                title="Total Earnings" 
-                                value={`₹${stats?.netEarnings?.toFixed(2) || '0.00'}`} 
-                                icon={IndianRupee} 
-                                color="var(--brand-blue)" 
+                            <StatCard
+                                title="Total Earnings"
+                                value={`₹${stats?.netEarnings?.toFixed(2) || '0.00'}`}
+                                icon={IndianRupee}
+                                color="var(--brand-blue)"
                                 trend="Post 10% Fee"
                             />
-                            <StatCard 
-                                title="Revenue" 
-                                value={`₹${stats?.totalRevenue?.toFixed(2) || '0.00'}`} 
-                                icon={TrendingUp} 
-                                color="var(--warning)" 
+                            <StatCard
+                                title="Revenue"
+                                value={`₹${stats?.totalRevenue?.toFixed(2) || '0.00'}`}
+                                icon={TrendingUp}
+                                color="var(--warning)"
                                 trend="Gross Sales"
                             />
                         </div>
@@ -427,14 +465,14 @@ const SellerDashboard = () => {
                                             >
                                                 <defs>
                                                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                                                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                                                        <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                                                     </linearGradient>
                                                 </defs>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: 'var(--secondary)', fontSize: 12}} />
-                                                <YAxis axisLine={false} tickLine={false} tick={{fill: 'var(--secondary)', fontSize: 12}} />
-                                                <Tooltip 
+                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--secondary)', fontSize: 12 }} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--secondary)', fontSize: 12 }} />
+                                                <Tooltip
                                                     contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px' }}
                                                     itemStyle={{ color: 'var(--primary)' }}
                                                 />
@@ -517,22 +555,10 @@ const SellerDashboard = () => {
                             </div>
 
                             <div className="card">
-                                <h3 style={{ fontWeight: 700, marginBottom: '20px' }}>Critical Action Required</h3>
+                                <h3 style={{ fontWeight: 700, marginBottom: '20px' }}>Quick Actions</h3>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    {rfqs.filter(r => r.status === 'pending').slice(0, 3).map(rfq => (
-                                        <div key={rfq._id} style={{ padding: '15px', borderRadius: '12px', background: 'var(--card)', border: '1px solid var(--border)' }}>
-                                            <p style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--primary)', marginBottom: '5px' }}>New Inquiry: {rfq.product?.name}</p>
-                                            <p style={{ fontSize: '0.8rem', marginBottom: '10px', color: 'var(--foreground)' }}>From {rfq.customer?.name}</p>
-                                            <button onClick={() => setView('rfqs')} className="btn btn-primary" style={{ width: '100%', fontSize: '0.8rem', justifyContent: 'center' }}>Respond Now</button>
-                                        </div>
-                                    ))}
-                                    {rfqs.filter(r => r.status === 'pending').length === 0 && (
-                                        <div style={{ textAlign: 'center', padding: '20px' }}>
-                                            <div style={{ color: 'var(--success)', marginBottom: '10px' }}><CheckCircle size={40} style={{ margin: '0 auto' }} /></div>
-                                            <p style={{ fontWeight: 600, color: 'var(--foreground)' }}>You're all caught up!</p>
-                                            <p style={{ fontSize: '0.8rem', color: 'var(--secondary)' }}>No pending inquiries to respond to.</p>
-                                        </div>
-                                    )}
+                                    <button onClick={() => setView('products')} className="btn btn-outline" style={{ justifyContent: 'center' }}>Manage Products</button>
+                                    <button onClick={() => setView('orders')} className="btn btn-primary" style={{ justifyContent: 'center' }}>View Orders</button>
                                 </div>
                             </div>
                         </div>
@@ -546,7 +572,7 @@ const SellerDashboard = () => {
                                 <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Product Catalog</h1>
                                 <p style={{ color: 'var(--secondary)' }}>Manage and monitor your listed items.</p>
                             </div>
-                            <button onClick={() => { setEditMode(false); setShowAddModal(true); setNewProduct({ name: '', description: '', category: '', price: '', minOrderQuantity: 1, packagingType: 'Standard', brand: 'Generic', deliveryTime: '3-4 Days', origin: 'Made in India', specifications: [{ key: '', value: '' }], countInStock: 10 }); setImages([]); }} className="btn btn-primary">
+                            <button onClick={() => { setEditMode(false); setShowAddModal(true); setNewProduct({ name: '', description: '', category: '', price: '', packagingType: 'Standard', brand: 'Generic', deliveryTime: '3-4 Days', origin: 'Made in India', specifications: [{ key: '', value: '' }], countInStock: 10 }); setImages([]); }} className="btn btn-primary">
                                 <Plus size={18} /> Add New Product
                             </button>
                         </div>
@@ -562,112 +588,26 @@ const SellerDashboard = () => {
                                         <p style={{ fontSize: '0.85rem', color: 'var(--secondary)', marginBottom: '8px' }}>{product.category}</p>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                             <p style={{ fontWeight: 700, color: 'var(--primary)' }}>₹{product.price}</p>
-                                            <p style={{ fontSize: '0.75rem', color: 'var(--secondary)' }}>Min Order: {product.minOrderQuantity}</p>
                                         </div>
-                                    <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', backgroundColor: (product.countInStock || 0) > 0 ? 'var(--success-bg)' : 'var(--error-bg)', color: (product.countInStock || 0) > 0 ? 'var(--success)' : 'var(--error)' }}>
-                                            {(product.countInStock || 0) > 0 ? `In Stock: ${product.countInStock}` : 'Out of Stock'}
-                                        </span>
-                                        <span style={{ height: '8px', width: '8px', borderRadius: '50%', backgroundColor: product.isApproved ? 'var(--success)' : 'var(--warning)' }}></span>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: product.isApproved ? 'var(--success)' : 'var(--warning)' }}>
-                                            {product.isApproved ? 'Live' : 'Pending Review'}
-                                        </span>
+                                        <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', backgroundColor: (product.countInStock || 0) > 0 ? 'var(--success-bg)' : 'var(--error-bg)', color: (product.countInStock || 0) > 0 ? 'var(--success)' : 'var(--error)' }}>
+                                                {(product.countInStock || 0) > 0 ? `In Stock: ${product.countInStock}` : 'Out of Stock'}
+                                            </span>
+                                            <span style={{ height: '8px', width: '8px', borderRadius: '50%', backgroundColor: product.isApproved ? 'var(--success)' : 'var(--warning)' }}></span>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: product.isApproved ? 'var(--success)' : 'var(--warning)' }}>
+                                                {product.isApproved ? 'Live' : 'Pending Review'}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div style={{ position: 'absolute', top: '15px', right: '15px', display: 'flex', gap: '5px' }}>
-                                    <button onClick={() => handleEditClick(product)} className="btn btn-outline" style={{ padding: '6px', color: 'var(--primary)', border: 'none' }}><Edit size={16} /></button>
-                                    <button onClick={() => handleDeleteProduct(product._id)} className="btn btn-outline" style={{ padding: '6px', color: 'var(--error)', border: 'none' }}><Trash2 size={16} /></button>
-                                </div>
+                                    <div style={{ position: 'absolute', top: '15px', right: '15px', display: 'flex', gap: '5px' }}>
+                                        <button onClick={() => handleEditClick(product)} className="btn btn-outline" style={{ padding: '6px', color: 'var(--primary)', border: 'none' }}><Edit size={16} /></button>
+                                        <button onClick={() => handleDeleteProduct(product._id)} className="btn btn-outline" style={{ padding: '6px', color: 'var(--error)', border: 'none' }}><Trash2 size={16} /></button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
-                )}
-
-                {view === 'rfqs' && (
-                    <div className="fade-in">
-                        <h1 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '30px' }}>Customer Inquiries</h1>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '20px' }}>
-                            {rfqs.map(rfq => (
-                                <div key={rfq._id} className="card" style={{ borderLeft: rfq.status === 'pending' ? '4px solid var(--warning)' : '4px solid var(--success)' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                                        <div>
-                                            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--primary)' }}>{rfq.product?.name}</h3>
-                                            <p style={{ fontSize: '0.85rem', color: 'var(--secondary)' }}>From: {rfq.customer?.name}</p>
-                                        </div>
-                                        <span style={{ 
-                                            padding: '4px 12px', 
-                                            borderRadius: '20px', 
-                                            fontSize: '0.75rem', 
-                                            fontWeight: 600,
-                                            backgroundColor: rfq.status === 'pending' ? 'var(--warning-bg)' : 'var(--success-bg)',
-                                            color: rfq.status === 'pending' ? 'var(--warning)' : 'var(--success)'
-                                        }}>
-                                            {rfq.status.toUpperCase()}
-                                        </span>
-                                    </div>
-                                    
-                                    <div style={{ margin: '15px 0', padding: '15px', backgroundColor: 'var(--accent)', borderRadius: '12px' }}>
-                                        <p style={{ fontSize: '0.9rem', fontStyle: 'italic', marginBottom: '8px' }}>"{rfq.description}"</p>
-                                        <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>Required Quantity: {rfq.quantity}</p>
-                                    </div>
-
-                                    {rfq.status === 'responded' && rfq.sellerReply && (
-                                        <div style={{ margin: '0 0 20px 0', padding: '15px', backgroundColor: 'var(--accent)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                                            <p style={{ color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 700, marginBottom: '4px' }}>YOUR REPLY:</p>
-                                            <p style={{ fontSize: '0.9rem', color: 'var(--foreground)' }}>{rfq.sellerReply}</p>
-                                        </div>
-                                    )}
-
-                                    {rfq.status === 'pending' && (
-                                        <div style={{ marginBottom: '15px' }}>
-                                            <textarea 
-                                                className="input" 
-                                                placeholder="Write your professional response..."
-                                                style={{ minHeight: '100px', resize: 'vertical' }}
-                                                value={replies[rfq._id] || ''}
-                                                onChange={(e) => setReplies({ ...replies, [rfq._id]: e.target.value })}
-                                            />
-                                        </div>
-                                    )}
-
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                        {rfq.status === 'pending' && (
-                                            <button 
-                                                className="btn btn-primary"
-                                                onClick={async () => {
-                                                    try {
-                                                        const replyText = replies[rfq._id];
-                                                        if (!replyText || replyText.trim() === '') {
-                                                            alert('Please enter a reply before responding.');
-                                                            return;
-                                                        }
-                                                        await rfqService.updateRFQStatus(rfq._id, { status: 'responded', reply: replyText });
-                                                        fetchRFQs();
-                                                        alert('Reply sent successfully!');
-                                                    } catch (error) {
-                                                        alert('Failed to update status');
-                                                    }
-                                                }}
-                                                style={{ flex: 1, justifyContent: 'center' }}
-                                            >
-                                                Send Response
-                                            </button>
-                                        )}
-                                        <button 
-                                            className="btn btn-outline" 
-                                            onClick={() => window.location.href = `mailto:${rfq.customer?.email}`}
-                                            style={{ flex: 1, justifyContent: 'center' }}
-                                        >
-                                            <MessageSquare size={16} /> Direct Email
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                            {rfqs.length === 0 && <p style={{ color: 'var(--secondary)' }}>No inquiries received yet.</p>}
-                        </div>
-                    </div>
-                )}
+                   )}
 
                 {view === 'orders' && (
                     <div className="fade-in">
@@ -722,16 +662,41 @@ const SellerDashboard = () => {
                                             <td style={{ padding: '15px', fontWeight: 'bold', color: 'var(--success)' }}>₹{(order.amount * 0.90).toFixed(2)}</td>
                                             <td style={{ padding: '15px' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
                                             <td style={{ padding: '15px' }}>
-                                                <span style={{ 
-                                                    padding: '4px 10px', 
-                                                    borderRadius: '20px', 
-                                                    fontSize: '0.75rem', 
-                                                    fontWeight: 600,
-                                                    backgroundColor: order.status === 'Paid' ? 'var(--success-bg)' : (order.status === 'Pending' ? 'var(--warning-bg)' : 'var(--error-bg)'),
-                                                    color: order.status === 'Paid' ? 'var(--success)' : (order.status === 'Pending' ? 'var(--warning)' : 'var(--error)')
-                                                }}>
-                                                    {order.status}
-                                                </span>
+                                                {['Cancelled', 'Refunded', 'Delivered'].includes(order.status) ? (
+                                                     <span style={{
+                                                        padding: '4px 10px',
+                                                        borderRadius: '20px',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 600,
+                                                        backgroundColor: order.status === 'Delivered' ? 'var(--success-bg)' : 'var(--error-bg)',
+                                                        color: order.status === 'Delivered' ? 'var(--success)' : 'var(--error)'
+                                                    }}>
+                                                        {order.status}
+                                                    </span>
+                                                ) : (
+                                                    <select 
+                                                        value={order.status}
+                                                        onChange={(e) => handleOrderStatusUpdate(order._id, e.target.value)}
+                                                        style={{
+                                                            padding: '4px 8px',
+                                                            borderRadius: '8px',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 600,
+                                                            border: '1px solid var(--border)',
+                                                            backgroundColor: ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery'].includes(order.status) ? 'var(--success-bg)' : 'var(--warning-bg)',
+                                                            color: ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery'].includes(order.status) ? 'var(--success)' : 'var(--warning)',
+                                                            cursor: 'pointer',
+                                                            outline: 'none'
+                                                        }}
+                                                    >
+                                                        <option value="Paid">Paid (New)</option>
+                                                        <option value="Confirmed">Confirmed</option>
+                                                        <option value="Shipped">Shipped</option>
+                                                        <option value="Out for Delivery">Out for Delivery</option>
+                                                        <option value="Delivered">Delivered</option>
+                                                        <option value="Cancelled">Cancelled</option>
+                                                    </select>
+                                                )}
                                             </td>
                                             <td style={{ padding: '15px' }}>
                                                 {order.isTransferredToSeller ? (
@@ -786,23 +751,23 @@ const SellerDashboard = () => {
                                     <p style={{ color: 'var(--secondary)' }}>Member since {new Date(user.createdAt).getFullYear() || '2024'}</p>
                                 </div>
                             </div>
-                            
+
                             <form onSubmit={handleUpdateProfile} style={{ display: 'grid', gap: '20px' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Business Name</label>
-                                    <input 
-                                        className="input" 
-                                        value={settingsData.companyName} 
-                                        onChange={(e) => setSettingsData({...settingsData, companyName: e.target.value})} 
-                                        placeholder="Add your business name" 
+                                    <input
+                                        className="input"
+                                        value={settingsData.companyName}
+                                        onChange={(e) => setSettingsData({ ...settingsData, companyName: e.target.value })}
+                                        placeholder="Add your business name"
                                     />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Official Phone Number</label>
-                                    <input 
-                                        className="input" 
-                                        value={settingsData.phoneNumber} 
-                                        onChange={(e) => setSettingsData({...settingsData, phoneNumber: e.target.value})} 
+                                    <input
+                                        className="input"
+                                        value={settingsData.phoneNumber}
+                                        onChange={(e) => setSettingsData({ ...settingsData, phoneNumber: e.target.value })}
                                     />
                                 </div>
                                 <button type="submit" className="btn btn-primary" style={{ marginTop: '10px' }}>Update Business Profile</button>
@@ -812,7 +777,7 @@ const SellerDashboard = () => {
                 )}
             </main>
 
-            
+
             {/* Add Product Modal (Keep existing logic but improve UI) */}
             {showAddModal && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, backdropFilter: 'blur(4px)' }}>
@@ -821,31 +786,27 @@ const SellerDashboard = () => {
                             <h2 style={{ fontSize: '1.6rem', fontWeight: 800 }}>{editMode ? 'Edit Product' : 'List New Product'}</h2>
                             <button onClick={() => setShowAddModal(false)} style={{ background: 'none', color: 'var(--secondary)' }}><Trash2 size={24} style={{ transform: 'rotate(45deg)' }} /></button>
                         </div>
-                        
+
                         <form onSubmit={handleSubmitProduct}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Product Title</label>
-                                    <input type="text" className="input" placeholder="e.g. Industrial Steel Tubes" value={newProduct.name} onChange={(e) => setNewProduct({...newProduct, name: e.target.value})} required />
+                                    <input type="text" className="input" placeholder="e.g. Industrial Steel Tubes" value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} required />
                                 </div>
-                                
+
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Category</label>
-                                    <select className="input" value={newProduct.category} onChange={(e) => setNewProduct({...newProduct, category: e.target.value})} required>
+                                    <select className="input" value={newProduct.category} onChange={handleCategoryChange} required>
                                         <option value="" disabled>Select Category</option>
-                                        <option value="Industrial Machinery">Industrial Machinery</option>
-                                        <option value="Health & Medical">Health & Medical</option>
-                                        <option value="Building Construction">Building Construction</option>
-                                        <option value="Electronics">Electronics</option>
-                                        <option value="Packaging Material">Packaging Material</option>
-                                        <option value="Textiles">Textiles</option>
-                                        <option value="Agriculture">Agriculture</option>
+                                        {Object.keys(CATEGORY_SPECS).map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
                                         <option value="Other">Other</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Price (INR)</label>
-                                    <input type="number" className="input" placeholder="500" value={newProduct.price} onChange={(e) => setNewProduct({...newProduct, price: e.target.value})} required />
+                                    <input type="number" className="input" placeholder="500" value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} required />
                                     {newProduct.price > 0 && (
                                         <div style={{ marginTop: '8px', fontSize: '0.8rem', padding: '8px', backgroundColor: 'var(--accent)', borderRadius: '6px', border: '1px solid var(--border)' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--secondary)', marginBottom: '4px' }}>
@@ -859,26 +820,21 @@ const SellerDashboard = () => {
                                         </div>
                                     )}
                                 </div>
-
-                                <div>
-                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Min Order Qty</label>
-                                    <input type="number" className="input" value={newProduct.minOrderQuantity} onChange={(e) => setNewProduct({...newProduct, minOrderQuantity: e.target.value})} required />
-                                </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Delivery Time</label>
-                                    <input type="text" className="input" placeholder="e.g. 2-3 Days" value={newProduct.deliveryTime} onChange={(e) => setNewProduct({...newProduct, deliveryTime: e.target.value})} />
+                                    <input type="text" className="input" placeholder="e.g. 2-3 Days" value={newProduct.deliveryTime} onChange={(e) => setNewProduct({ ...newProduct, deliveryTime: e.target.value })} />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Stock Availability</label>
-                                    <input type="number" className="input" placeholder="e.g. 50" value={newProduct.countInStock} onChange={(e) => setNewProduct({...newProduct, countInStock: e.target.value})} required />
+                                    <input type="number" className="input" placeholder="e.g. 50" value={newProduct.countInStock} onChange={(e) => setNewProduct({ ...newProduct, countInStock: e.target.value })} required />
                                 </div>
                             </div>
 
                             <div style={{ marginBottom: '20px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Technical Specifications</label>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={addSpecification}
                                         style={{ fontSize: '0.8rem', color: 'var(--brand-blue)', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
                                     >
@@ -887,27 +843,27 @@ const SellerDashboard = () => {
                                 </div>
                                 {newProduct.specifications.map((spec, index) => (
                                     <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                                        <input 
-                                            type="text" 
-                                            className="input" 
-                                            placeholder="Label (e.g. Material)" 
-                                            value={spec.key} 
+                                        <input
+                                            type="text"
+                                            className="input"
+                                            placeholder="Label (e.g. Material)"
+                                            value={spec.key}
                                             style={{ flex: 1 }}
                                             onChange={(e) => handleSpecChange(index, 'key', e.target.value)}
                                             required
                                         />
-                                        <input 
-                                            type="text" 
-                                            className="input" 
-                                            placeholder="Value (e.g. Aluminium)" 
-                                            value={spec.value} 
+                                        <input
+                                            type="text"
+                                            className="input"
+                                            placeholder="Value (e.g. Aluminium)"
+                                            value={spec.value}
                                             style={{ flex: 1 }}
                                             onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
                                             required
                                         />
                                         {newProduct.specifications.length > 1 && (
-                                            <button 
-                                                type="button" 
+                                            <button
+                                                type="button"
                                                 onClick={() => removeSpecification(index)}
                                                 style={{ padding: '8px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
                                             >
@@ -917,10 +873,10 @@ const SellerDashboard = () => {
                                     </div>
                                 ))}
                             </div>
-                            
+
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Description</label>
-                                <textarea className="input" style={{ height: '100px' }} value={newProduct.description} onChange={(e) => setNewProduct({...newProduct, description: e.target.value})} required placeholder="Describe your product features, quality, and usage..." />
+                                <textarea className="input" style={{ height: '100px' }} value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} required placeholder="Describe your product features, quality, and usage..." />
                             </div>
 
                             <div style={{ marginBottom: '20px' }}>
@@ -928,13 +884,13 @@ const SellerDashboard = () => {
                                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
                                     {images.map((img, index) => (
                                         <div key={index} style={{ position: 'relative', width: '100px', height: '100px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                                            <img 
-                                                src={typeof img === 'string' ? img : URL.createObjectURL(img)} 
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                                alt={`Preview ${index}`} 
+                                            <img
+                                                src={typeof img === 'string' ? img : URL.createObjectURL(img)}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                alt={`Preview ${index}`}
                                             />
-                                            <button 
-                                                type="button" 
+                                            <button
+                                                type="button"
                                                 onClick={() => removeImage(index)}
                                                 style={{ position: 'absolute', top: '5px', right: '5px', backgroundColor: 'var(--error)', color: 'white', border: 'none', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 1 }}
                                             >
@@ -943,16 +899,16 @@ const SellerDashboard = () => {
                                         </div>
                                     ))}
                                     {images.length < 5 && (
-                                        <label style={{ 
-                                            width: '100px', 
-                                            height: '100px', 
-                                            display: 'flex', 
+                                        <label style={{
+                                            width: '100px',
+                                            height: '100px',
+                                            display: 'flex',
                                             flexDirection: 'column',
-                                            alignItems: 'center', 
-                                            justifyContent: 'center', 
-                                            backgroundColor: 'var(--accent)', 
-                                            border: '2px dashed var(--border)', 
-                                            borderRadius: '12px', 
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            backgroundColor: 'var(--accent)',
+                                            border: '2px dashed var(--border)',
+                                            borderRadius: '12px',
                                             cursor: 'pointer',
                                             color: 'var(--secondary)',
                                             transition: 'all 0.2s',

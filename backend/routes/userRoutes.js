@@ -8,7 +8,9 @@ import {
     updateUserProfile,
     getUsers,
     uploadLogo,
-    getUserPublicProfile
+    getUserPublicProfile,
+    toggleWishlist,
+    getWishlist
 } from '../controllers/userController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -21,6 +23,10 @@ router.route('/profile')
     .get(protect, getUserProfile)
     .put(protect, updateUserProfile);
 router.post('/logo', protect, upload.single('logo'), uploadLogo);
+router.route('/wishlist')
+    .get(protect, getWishlist)
+    .post(protect, toggleWishlist);
+
 router.get('/:id', getUserPublicProfile);
 router.get('/', protect, admin, getUsers);
 

@@ -11,7 +11,6 @@ const productSchema = mongoose.Schema({
     category: { type: String, required: true },
     images: [{ type: String }], // Cloudinary URLs
     price: { type: Number, required: true },
-    minOrderQuantity: { type: Number, default: 1 },
     packagingType: { type: String, default: 'Standard' },
     brand: { type: String, default: 'Generic' },
     deliveryTime: { type: String, default: '3-4 Days' },
@@ -23,7 +22,17 @@ const productSchema = mongoose.Schema({
             key: { type: String, required: true },
             value: { type: String, required: true }
         }
-    ]
+    ],
+    reviews: [
+        {
+            user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+            name: { type: String, required: true },
+            rating: { type: Number, required: true },
+            comment: { type: String, required: true },
+        }
+    ],
+    rating: { type: Number, default: 0 },
+    numReviews: { type: Number, default: 0 },
 }, { timestamps: true });
 
 const Product = mongoose.model('Product', productSchema);

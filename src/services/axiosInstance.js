@@ -38,4 +38,6 @@ axiosInstance.interceptors.response.use(
   }
 );
 
+export const isCancel = (error) => axios.isCancel(error);
+
 export default axiosInstance;

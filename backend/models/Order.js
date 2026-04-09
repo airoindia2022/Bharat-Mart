@@ -33,9 +33,11 @@ const orderSchema = mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Paid', 'Failed', 'Refunded'],
+        enum: ['Pending', 'Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Refunded'],
         default: 'Pending'
     },
+    deliveredAt: { type: Date },
+    shippedAt: { type: Date },
     isTransferredToSeller: {
         type: Boolean,
         default: false

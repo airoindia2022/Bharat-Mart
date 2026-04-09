@@ -22,6 +22,7 @@ const userSchema = mongoose.Schema({
     accountHolderName: { type: String },
     razorpayAccountId: { type: String }, // For Razorpay Route
     logoURL: { type: String }, // For Company Logo
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
 }, { timestamps: true });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {

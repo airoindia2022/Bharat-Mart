@@ -71,3 +71,14 @@ export const approveProduct = async (id) => {
     const { data } = await axiosInstance.put(`/products/${id}/approve`);
     return data;
 };
+
+/**
+ * Create a review for a product
+ * @param {string} productId - Product ID
+ * @param {Object} review - Review data (rating, comment)
+ * @returns {Promise<Object>} Created review result
+ */
+export const createProductReview = async (productId, review) => {
+    const { data } = await axiosInstance.post(`/products/${productId}/reviews`, review);
+    return data;
+};

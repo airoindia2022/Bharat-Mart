@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as productService from '../services/product.service';
 import * as paymentService from '../services/payment.service';
+import * as authService from '../services/auth.service';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ShoppingBag,
@@ -17,7 +19,7 @@ import {
     ArrowRight,
     Zap,
     Share2,
-    Heart,
+    ShoppingCart,
     Info,
     Check,
     Briefcase,
@@ -33,14 +35,18 @@ const ProductDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { addToCart } = useCart();
 
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [rfqData, setRfqData] = useState({ title: '', description: '', quantity: 1 });
+    const [orderData, setOrderData] = useState({ title: '', description: '', quantity: 1 });
     const [successMsg, setSuccessMsg] = useState('');
     const [activeImage, setActiveImage] = useState(0);
-    const [wishlisted, setWishlisted] = useState(false);
-    const [expandedSections, setExpandedSections] = useState({ description: true, specs: false });
+    const [expandedSections, setExpandedSections] = useState({ description: true, specs: false, reviews: false });
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewSuccess, setReviewSuccess] = useState('');
+    const [reviewError, setReviewError] = useState('');
 
     useEffect(() => {
         const controller = new AbortController();
@@ -48,9 +54,11 @@ const ProductDetail = () => {
             try {
                 const data = await productService.getProductById(id, controller.signal);
                 setProduct(data);
-                setRfqData(prev => ({ ...prev, quantity: data.minOrderQuantity || 1 }));
+                setOrderData(prev => ({ ...prev, quantity: 1 }));
+
+
             } catch (error) {
-                if (error.name !== 'AbortError') {
+                if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
                     console.error('Error fetching product:', error);
                 }
             } finally {
@@ -60,8 +68,30 @@ const ProductDetail = () => {
         fetchProduct();
         window.scrollTo(0, 0);
         return () => controller.abort();
-    }, [id]);
+    }, [id, user]);
 
+
+
+    const submitReviewHandler = async (e) => {
+        e.preventDefault();
+        setReviewError('');
+        setReviewSuccess('');
+        try {
+            await productService.createProductReview(id, {
+                rating: reviewRating,
+                comment: reviewComment
+            });
+            setReviewSuccess('Review submitted successfully!');
+            setReviewComment('');
+            // Refresh product to show new review
+            const updatedProduct = await productService.getProductById(id);
+            setProduct(updatedProduct);
+        } catch (error) {
+            if (error.name !== 'CanceledError' && error.name !== 'AbortError') {
+                setReviewError(error.response?.data?.message || 'Failed to submit review');
+            }
+        }
+    };
 
     const handlePayment = async () => {
         if (!user) { navigate('/login'); return; }
@@ -69,15 +99,15 @@ const ProductDetail = () => {
         try {
             const data = await paymentService.createOrder({
                 productId: product._id,
-                amount: product.price * rfqData.quantity,
-                quantity: rfqData.quantity,
+                amount: product.price * orderData.quantity,
+                quantity: orderData.quantity,
                 sellerId: product.seller._id
             });
 
             const { order } = data;
 
             const options = {
-                key: "rzp_live_SV3kPDAMp3RMtY",
+                key: "rzp_test_SNzPfkHs3w4syf",
                 amount: order.amount,
                 currency: order.currency,
                 name: "Bharat Mart",
@@ -190,12 +220,13 @@ const ProductDetail = () => {
                                 <motion.button
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.9 }}
-                                    onClick={() => setWishlisted(!wishlisted)}
-                                    className={`action-circle ${wishlisted ? 'active' : ''}`}
+                                    onClick={() => addToCart(product, 1)}
+                                    className="action-circle"
+                                    title="Add to Cart"
                                 >
-                                    <Heart size={20} fill={wishlisted ? "#ef4444" : "none"} color={wishlisted ? "#ef4444" : "var(--foreground)"} />
+                                    <ShoppingCart size={20} color="var(--brand-blue)" />
                                 </motion.button>
-                                <motion.button whileHover={{ scale: 1.1 }} className="action-circle"><Share2 size={20} /></motion.button>
+                                <motion.button whileHover={{ scale: 1.1 }} className="action-circle" title="Share Product"><Share2 size={20} /></motion.button>
                             </div>
                         </motion.div>
 
@@ -220,10 +251,12 @@ const ProductDetail = () => {
                             <h1>{product.name}</h1>
                             <div className="bm-rating-snap">
                                 <div className="stars">
-                                    {[1, 2, 3, 4, 5].map(s => <Star key={s} size={14} fill={s <= 4 ? "#fbbf24" : "none"} color={s <= 4 ? "#fbbf24" : "var(--border)"} />)}
+                                    {[1, 2, 3, 4, 5].map(s => <Star key={s} size={14} fill={s <= Math.round(product.rating || 0) ? "#fbbf24" : "none"} color={s <= Math.round(product.rating || 0) ? "#fbbf24" : "var(--border)"} />)}
                                 </div>
-                                <span>(4.8 / 5 Rating)</span>
-                                <span className="sold-count">• {Math.floor(Math.random() * 500) + 100}+ Units Sold recently</span>
+                                <div className="rating-info">
+                                    <span className="rating-value">{product.rating ? product.rating.toFixed(1) : 'No'}</span>
+                                    <span className="review-count">({product.numReviews || 0} Reviews)</span>
+                                </div>
                             </div>
                         </div>
 
@@ -241,32 +274,29 @@ const ProductDetail = () => {
 
                         <div className="bm-order-configuration">
                             <div className="config-grid">
-                                <div className="config-box">
-                                    <label><Package size={14} /> Min Order</label>
-                                    <p>{product.minOrderQuantity || 1} Units</p>
-                                </div>
+
                                 <div className="config-box qty-box">
                                     <label><ShoppingBag size={14} /> Buy Quantity</label>
                                     <div className="qty-picker-inline">
-                                        <button 
+                                        <button
                                             type="button"
-                                            onClick={() => setRfqData(prev => ({ ...prev, quantity: Math.max(product.minOrderQuantity || 1, prev.quantity - 1) }))}
-                                            disabled={rfqData.quantity <= (product.minOrderQuantity || 1)}
+                                            onClick={() => setOrderData(prev => ({ ...prev, quantity: Math.max(1, prev.quantity - 1) }))}
+                                            disabled={orderData.quantity <= 1}
                                         >
                                             <Minus size={14} />
                                         </button>
-                                        <input 
-                                            type="number" 
-                                            value={rfqData.quantity} 
-                                            onChange={e => setRfqData(prev => ({ 
-                                                ...prev, 
-                                                quantity: Math.max(product.minOrderQuantity || 1, Math.min(product.countInStock || 9999, parseInt(e.target.value) || 1)) 
-                                            }))} 
+                                        <input
+                                            type="number"
+                                            value={orderData.quantity}
+                                            onChange={e => setOrderData(prev => ({
+                                                ...prev,
+                                                quantity: Math.max(1, Math.min(product.countInStock || 9999, parseInt(e.target.value) || 1))
+                                            }))}
                                         />
-                                        <button 
+                                        <button
                                             type="button"
-                                            onClick={() => setRfqData(prev => ({ ...prev, quantity: Math.min(product.countInStock || 9999, prev.quantity + 1) }))}
-                                            disabled={rfqData.quantity >= (product.countInStock || 9999)}
+                                            onClick={() => setOrderData(prev => ({ ...prev, quantity: Math.min(product.countInStock || 9999, prev.quantity + 1) }))}
+                                            disabled={orderData.quantity >= (product.countInStock || 9999)}
                                         >
                                             <Plus size={14} />
                                         </button>
@@ -286,19 +316,99 @@ const ProductDetail = () => {
 
                             <div className="bm-cta-hub">
                                 <motion.button
-                                    whileHover={{ scale: (product.countInStock || 0) < rfqData.quantity ? 1 : 1.02 }}
-                                    whileTap={{ scale: (product.countInStock || 0) < rfqData.quantity ? 1 : 0.98 }}
-                                    onClick={handlePayment}
-                                    className="bm-primary-cta"
-                                    disabled={loading || (product.countInStock || 0) < rfqData.quantity}
+                                    whileHover={{ scale: (product.countInStock || 0) < orderData.quantity ? 1 : 1.02 }}
+                                    whileTap={{ scale: (product.countInStock || 0) < orderData.quantity ? 1 : 0.98 }}
+                                    onClick={() => addToCart(product, orderData.quantity)}
+                                    className="bm-secondary-cta"
+                                    disabled={loading || (product.countInStock || 0) < orderData.quantity}
                                     style={{
-                                        opacity: (product.countInStock || 0) < rfqData.quantity ? 0.7 : 1,
-                                        cursor: (product.countInStock || 0) < rfqData.quantity ? 'not-allowed' : 'pointer',
-                                        background: (product.countInStock || 0) < rfqData.quantity ? '#6b7280' : 'var(--brand-blue)'
+                                        opacity: (product.countInStock || 0) < orderData.quantity ? 0.7 : 1,
+                                        cursor: (product.countInStock || 0) < orderData.quantity ? 'not-allowed' : 'pointer'
                                     }}
                                 >
-                                    <Zap size={20} /> {(product.countInStock || 0) < rfqData.quantity ? 'Out of Stock' : 'Buy It Now'}
+                                    <ShoppingBag size={20} /> Add to Cart
                                 </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: (product.countInStock || 0) < orderData.quantity ? 1 : 1.02 }}
+                                    whileTap={{ scale: (product.countInStock || 0) < orderData.quantity ? 1 : 0.98 }}
+                                    onClick={handlePayment}
+                                    className="bm-primary-cta"
+                                    disabled={loading || (product.countInStock || 0) < orderData.quantity}
+                                    style={{
+                                        opacity: (product.countInStock || 0) < orderData.quantity ? 0.7 : 1,
+                                        cursor: (product.countInStock || 0) < orderData.quantity ? 'not-allowed' : 'pointer',
+                                        background: (product.countInStock || 0) < orderData.quantity ? '#6b7280' : 'var(--brand-blue)'
+                                    }}
+                                >
+                                    <Zap size={20} /> {(product.countInStock || 0) < orderData.quantity ? 'Out of Stock' : 'Buy It Now'}
+                                </motion.button>
+                            </div>
+                            <div className={`bm-accordion-item ${expandedSections.reviews ? 'open' : ''}`}>
+                                <button onClick={() => toggleSection('reviews')}>
+                                    <span>Customer Reviews</span>
+                                    {expandedSections.reviews ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                </button>
+                                <motion.div
+                                    initial={false}
+                                    animate={{ height: expandedSections.reviews ? 'auto' : 0, opacity: expandedSections.reviews ? 1 : 0 }}
+                                    className="accordion-content"
+                                >
+                                    <div className="bm-reviews-container">
+                                        <div className="bm-reviews-list">
+                                            {product.reviews && product.reviews.length > 0 ? (
+                                                product.reviews.map((review, i) => (
+                                                    <div key={i} className="review-card">
+                                                        <div className="review-meta">
+                                                            <strong>{review.name}</strong>
+                                                            <div className="review-stars">
+                                                                {[1, 2, 3, 4, 5].map(s => <Star key={s} size={10} fill={s <= review.rating ? "#fbbf24" : "none"} color={s <= review.rating ? "#fbbf24" : "var(--border)"} />)}
+                                                            </div>
+                                                            <span>{new Date(review.createdAt).toLocaleDateString()}</span>
+                                                        </div>
+                                                        <p className="review-comment">{review.comment}</p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="no-reviews">No reviews yet. Be the first to share your experience!</p>
+                                            )}
+                                        </div>
+
+                                        {user ? (
+                                            <div className="bm-review-form">
+                                                <h4>Write a Review</h4>
+                                                {reviewSuccess && <p className="success-msg">{reviewSuccess}</p>}
+                                                {reviewError && <p className="error-msg">{reviewError}</p>}
+                                                <form onSubmit={submitReviewHandler}>
+                                                    <div className="form-group">
+                                                        <label>Rating</label>
+                                                        <select value={reviewRating} onChange={(e) => setReviewRating(e.target.value)}>
+                                                            <option value="5">5 - Excellent</option>
+                                                            <option value="4">4 - Very Good</option>
+                                                            <option value="3">3 - Good</option>
+                                                            <option value="2">2 - Fair</option>
+                                                            <option value="1">1 - Poor</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label>Comment</label>
+                                                        <textarea
+                                                            rows="3"
+                                                            value={reviewComment}
+                                                            onChange={(e) => setReviewComment(e.target.value)}
+                                                            placeholder="What did you like or dislike?"
+                                                            required
+                                                        ></textarea>
+                                                    </div>
+                                                    <button type="submit" className="bm-small-cta">Post Review</button>
+                                                </form>
+                                            </div>
+                                        ) : (
+                                            <div className="login-to-review">
+                                                <p>Please <button onClick={() => navigate('/login')}>Login</button> to write a review</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </motion.div>
                             </div>
                         </div>
 
@@ -682,6 +792,33 @@ const ProductDetail = () => {
                 }
                 .bm-notification-toast h4 { margin: 0; font-weight: 800; color: var(--foreground); }
                 .bm-notification-toast p { margin: 2px 0 0; font-size: 0.85rem; color: #22c55e; font-weight: 600; }
+
+                /* Reviews CSS */
+                .bm-reviews-container { padding-bottom: 30px; }
+                .review-card { padding: 15px; background: var(--accent); border-radius: 12px; margin-bottom: 15px; }
+                .review-meta { display: flex; align-items: center; gap: 15px; margin-bottom: 8px; font-size: 0.85rem; }
+                .review-stars { display: flex; gap: 2px; }
+                .review-comment { font-size: 0.95rem; color: var(--foreground); line-height: 1.5; }
+                .no-reviews { color: var(--secondary); font-style: italic; margin-bottom: 30px; }
+
+                .bm-review-form { margin-top: 40px; border-top: 1px solid var(--border); padding-top: 30px; }
+                .bm-review-form h4 { margin-bottom: 20px; font-weight: 800; }
+                .form-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
+                .form-group label { font-size: 0.8rem; font-weight: 700; color: var(--secondary); }
+                .form-group select, .form-group textarea {
+                    padding: 12px; border-radius: 10px; border: 1.5px solid var(--border);
+                    background: var(--card); color: var(--foreground); font-family: inherit;
+                }
+                .bm-small-cta {
+                    background: var(--foreground); color: var(--background);
+                    padding: 10px 20px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer;
+                    transition: 0.3s;
+                }
+                .bm-small-cta:hover { opacity: 0.8; }
+                .success-msg { color: #22c55e; font-weight: 700; margin-bottom: 10px; font-size: 0.9rem; }
+                .error-msg { color: #ef4444; font-weight: 700; margin-bottom: 10px; font-size: 0.9rem; }
+                .login-to-review { margin-top: 20px; padding: 20px; background: var(--accent); border-radius: 12px; text-align: center; }
+                .login-to-review button { background: none; border: none; font-weight: 800; color: var(--primary); cursor: pointer; text-decoration: underline; }
 
                 @media (max-width: 1200px) {
                     .bm-layout-grid { grid-template-columns: 1fr; }

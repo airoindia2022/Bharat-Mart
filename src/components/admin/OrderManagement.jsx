@@ -48,8 +48,13 @@ const OrderManagement = ({ orders, onSettle, onRefund }) => {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">All Status</option>
-            <option value="Paid">Paid</option>
             <option value="Pending">Pending</option>
+            <option value="Paid">Paid</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Shipped">Shipped</option>
+            <option value="Out for Delivery">Out for Delivery</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
             <option value="Refunded">Refunded</option>
           </select>
           <button className="btn btn-primary" style={{ borderRadius: '12px', height: '44px' }}>
@@ -116,10 +121,10 @@ const OrderManagement = ({ orders, onSettle, onRefund }) => {
                   </div>
                 </td>
                 <td>
-                  <span className={`status-badge ${o.status === 'Paid' ? 'success' : (o.status === 'Pending' ? 'warning' : 'error')}`}>
-                    {o.status === 'Paid' && <CheckCircle2 size={12} />}
+                  <span className={`status-badge ${['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(o.status) ? 'success' : (o.status === 'Pending' ? 'warning' : 'error')}`}>
+                    {['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(o.status) && <CheckCircle2 size={12} />}
                     {o.status === 'Pending' && <Clock size={12} />}
-                    {o.status === 'Refunded' && <RotateCcw size={12} />}
+                    {(o.status === 'Refunded' || o.status === 'Cancelled') && <RotateCcw size={12} />}
                     {o.status}
                   </span>
                 </td>
@@ -130,7 +135,7 @@ const OrderManagement = ({ orders, onSettle, onRefund }) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--success)', fontWeight: 700, fontSize: '0.75rem' }}>
                       <CheckCircle2 size={14} /> SETTLED
                     </div>
-                  ) : o.status === 'Paid' ? (
+                  ) : ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'].includes(o.status) ? (
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button 
                         onClick={() => onSettle(o._id)} 

@@ -121,27 +121,6 @@ export const approveProduct = async (id) => {
   return data;
 };
 
-// RFQ Endpoints
-export const createRFQ = async (rfqData) => {
-  const { data } = await api.post('/rfq', rfqData);
-  return data;
-};
-
-export const getRFQs = async (params = {}) => {
-  const { data } = await api.get('/rfq', { params });
-  return data;
-};
-
-export const getRFQById = async (id) => {
-  const { data } = await api.get(`/rfq/${id}`);
-  return data;
-};
-
-export const updateRFQStatus = async (id, statusData) => {
-  const { data } = await api.put(`/rfq/${id}`, statusData);
-  return data;
-};
-
 // Order/Payment Endpoints
 export const createOrder = async (orderData) => {
   const { data } = await api.post('/payment/create-order', orderData);

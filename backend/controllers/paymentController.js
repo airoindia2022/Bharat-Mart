@@ -225,8 +225,9 @@ export const settleOrderManual = async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        if (order.status !== 'Paid') {
-            return res.status(400).json({ message: 'Cannot settle an unpaid or already refunded order' });
+        const paidStatuses = ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'];
+        if (!paidStatuses.includes(order.status)) {
+            return res.status(400).json({ message: 'Cannot settle an unpaid, cancelled, or already refunded order' });
         }
 
         if (order.isTransferredToSeller) {
@@ -255,7 +256,8 @@ export const refundOrderManual = async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        if (order.status !== 'Paid') {
+        const paidStatuses = ['Paid', 'Confirmed', 'Shipped', 'Out for Delivery', 'Delivered'];
+        if (!paidStatuses.includes(order.status)) {
             return res.status(400).json({ message: 'Only paid orders can be refunded' });
         }
 
@@ -288,5 +290,37 @@ export const refundOrderManual = async (req, res) => {
     } catch (error) {
         console.error('Manual refund failed:', error);
         res.status(500).json({ message: 'Error refunding order manually' });
+    }
+};
+
+// @desc    Update Order Status
+// @route   PUT /api/payment/order/:id/status
+// @access  Seller/Admin
+export const updateOrderStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Check if user is seller of this product or admin
+        if (order.seller.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        order.status = status;
+        
+        if (status === 'Delivered') {
+            order.deliveredAt = Date.now();
+        } else if (status === 'Shipped') {
+            order.shippedAt = Date.now();
+        }
+
+        const updatedOrder = await order.save();
+        res.status(200).json(updatedOrder);
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating order status' });
     }
 };
