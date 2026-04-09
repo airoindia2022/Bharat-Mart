@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get base URL from environment variables or use default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = 'https://bharat-mart.onrender.com/api' || 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -77,8 +77,8 @@ export const uploadLogo = async (formData) => {
 
 // Users Endpoints (Admin only)
 export const getUsers = async () => {
-    const { data } = await api.get('/users');
-    return data;
+  const { data } = await api.get('/users');
+  return data;
 }
 
 // Product Endpoints
@@ -104,9 +104,9 @@ export const createProduct = async (productData) => {
 
 export const updateProduct = async (id, productData) => {
   const { data } = await api.put(`/products/${id}`, productData, {
-      headers: {
-          'Content-Type': productData instanceof FormData ? 'multipart/form-data' : 'application/json',
-      },
+    headers: {
+      'Content-Type': productData instanceof FormData ? 'multipart/form-data' : 'application/json',
+    },
   });
   return data;
 };
@@ -138,13 +138,13 @@ export const getMyOrders = async () => {
 };
 
 export const getSellerOrders = async () => {
-    const { data } = await api.get('/payment/seller-orders');
-    return data;
+  const { data } = await api.get('/payment/seller-orders');
+  return data;
 };
 
 export const getAllOrders = async () => {
-    const { data } = await api.get('/payment/all-orders');
-    return data;
+  const { data } = await api.get('/payment/all-orders');
+  return data;
 };
 
 // Stats Endpoints
