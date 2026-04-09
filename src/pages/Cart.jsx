@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import * as paymentService from '../services/payment.service';
+import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Cart = () => {
     const { 
@@ -11,9 +14,77 @@ const Cart = () => {
         getCartTotal, 
         clearCart 
     } = useCart();
+    const { user } = useAuth();
     const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const [successMsg, setSuccessMsg] = useState('');
 
-    if (cartItems.length === 0) {
+    const handleCheckout = async () => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const data = await paymentService.createCartOrder({
+                cartItems: cartItems.map(item => ({
+                    _id: item._id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    seller: item.seller?._id || item.seller // Support both populated and ID
+                })),
+                totalAmount: getCartTotal()
+            });
+
+            const { order } = data;
+
+            const options = {
+                key: "rzp_test_SNzPfkHs3w4syf", // Use the same key as in ProductDetail.jsx
+                amount: order.amount,
+                currency: order.currency,
+                name: "Bharat Mart",
+                description: "Cart Checkout",
+                order_id: order.id,
+                handler: async function (response) {
+                    try {
+                        const verifyData = await paymentService.verifyPayment({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        });
+
+                        if (verifyData.success) {
+                            setSuccessMsg('Payment Successful! Your order has been placed.');
+                            clearCart();
+                            setTimeout(() => {
+                                setSuccessMsg('');
+                                navigate('/orders');
+                            }, 3000);
+                        }
+                    } catch (err) {
+                        alert('Payment Verification Failed');
+                    }
+                },
+                prefill: {
+                    name: user.name,
+                    email: user.email,
+                    contact: user.phoneNumber || ""
+                },
+                theme: { color: "#2563eb" }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+        } catch (error) {
+            console.error('Checkout error:', error);
+            alert(error.response?.data?.message || 'Payment Initiation Failed');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (cartItems.length === 0 && !successMsg) {
         return (
             <div className="container" style={{ padding: '80px 1rem', textAlign: 'center' }}>
                 <div style={{ backgroundColor: 'var(--accent)', width: '100px', height: '100px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', color: 'var(--secondary)' }}>
@@ -30,6 +101,28 @@ const Cart = () => {
 
     return (
         <div className="container" style={{ padding: '40px 1rem' }}>
+            <AnimatePresence>
+                {successMsg && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.5 }}
+                        className="bm-notification-toast"
+                        style={{
+                            position: 'fixed', top: '30px', right: '30px', backgroundColor: 'var(--card)',
+                            padding: '20px 30px', border_radius: '20px', display: 'flex', alignItems: 'center', gap: '20px',
+                            boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)', zIndex: 2000, border: '1px solid var(--border)'
+                        }}
+                    >
+                        <CheckCircle2 color="#22c55e" size={24} />
+                        <div>
+                            <h4 style={{ margin: 0 }}>Success</h4>
+                            <p style={{ margin: '2px 0 0', color: '#22c55e', fontWeight: 600 }}>{successMsg}</p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '30px' }}>
                 <button onClick={() => navigate(-1)} className="btn btn-outline" style={{ padding: '8px' }}><ArrowLeft size={18} /></button>
                 <h1 style={{ fontSize: '2rem', margin: 0 }}>Shopping Cart</h1>
@@ -117,9 +210,10 @@ const Cart = () => {
                     <button 
                         className="btn btn-primary" 
                         style={{ width: '100%', justifyContent: 'center', padding: '15px', fontSize: '1.1rem' }}
-                        onClick={() => navigate('/orders')}
+                        onClick={handleCheckout}
+                        disabled={loading}
                     >
-                        Proceed to Checkout <ChevronRight size={20} />
+                        {loading ? 'Processing...' : 'Pay with Razorpay'} <ChevronRight size={20} />
                     </button>
                     
                     <Link 

@@ -11,6 +11,16 @@ export const createOrder = async (orderData) => {
 };
 
 /**
+ * Initiate a cart order to get Razorpay order ID
+ * @param {Object} cartData - The cart items and total
+ * @returns {Promise<Object>} Created order data
+ */
+export const createCartOrder = async (cartData) => {
+    const { data } = await axiosInstance.post('/payment/create-cart-order', cartData);
+    return data;
+};
+
+/**
  * Verify Razorpay payment signature
  * @param {Object} paymentDetails - Verification info (IDs/Signature)
  * @returns {Promise<Object>} Verification result

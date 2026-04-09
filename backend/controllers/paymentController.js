@@ -83,7 +83,7 @@ const transferToSeller = async (orderId) => {
     }
 };
 
-// @desc    Create Razorpay Order
+// @desc    Create Razorpay Order for specific product (Direct Buy)
 // @route   POST /api/payment/create-order
 // @access  Private
 export const createOrder = async (req, res) => {
@@ -126,6 +126,61 @@ export const createOrder = async (req, res) => {
     }
 };
 
+// @desc    Create Razorpay Order for Cart
+// @route   POST /api/payment/create-cart-order
+// @access  Private
+export const createCartOrder = async (req, res) => {
+    try {
+        const { cartItems, totalAmount } = req.body;
+        
+        if (!cartItems || cartItems.length === 0) {
+            return res.status(400).json({ success: false, message: 'Cart is empty' });
+        }
+
+        // Validate stock for all items
+        for (const item of cartItems) {
+            const product = await Product.findById(item._id);
+            if (!product || product.countInStock < item.quantity) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Stock not available for ${product ? product.name : 'Unknown Product'}` 
+                });
+            }
+        }
+
+        const options = {
+            amount: totalAmount * 100, // Amount in paise
+            currency: "INR",
+            receipt: `receipt_cart_${Date.now()}`,
+        };
+
+        const razorpayOrder = await razorpay.orders.create(options);
+
+        // Store multiple orders in our database, all linked to the same razorpayOrderId
+        const orderPromises = cartItems.map(item => {
+            return Order.create({
+                buyer: req.user._id,
+                product: item._id,
+                seller: item.seller, // Assumes seller ID is present in the cart item
+                razorpayOrderId: razorpayOrder.id,
+                amount: item.price * item.quantity,
+                quantity: item.quantity,
+                status: 'Pending',
+            });
+        });
+
+        await Promise.all(orderPromises);
+
+        res.status(200).json({
+            success: true,
+            order: razorpayOrder
+        });
+    } catch (error) {
+        console.error('Error creating Razorpay cart order:', error);
+        res.status(500).json({ success: false, message: 'Failed to create payment order' });
+    }
+};
+
 // @desc    Verify Payment
 // @route   POST /api/payment/verify-payment
 // @access  Private
@@ -138,25 +193,26 @@ export const verifyPayment = async (req, res) => {
         const generated_signature = hmac.digest('hex');
 
         if (generated_signature === razorpay_signature) {
-            // Payment is valid, update the order status
-            const order = await Order.findOneAndUpdate(
-                { razorpayOrderId: razorpay_order_id },
-                { 
-                    status: 'Paid', 
-                    razorpayPaymentId: razorpay_payment_id 
-                },
-                { returnDocument: 'after' }
-            );
-
-            // Decrease product stock
-            if (order) {
-                await Product.findByIdAndUpdate(
-                    order.product,
-                    { $inc: { countInStock: -order.quantity } }
+            // Payment is valid, update the order status for all entries linked to this Razorpay Order ID
+            const orders = await Order.find({ razorpayOrderId: razorpay_order_id });
+            
+            if (orders && orders.length > 0) {
+                // Update all orders state
+                await Order.updateMany(
+                    { razorpayOrderId: razorpay_order_id },
+                    { 
+                        status: 'Paid', 
+                        razorpayPaymentId: razorpay_payment_id 
+                    }
                 );
 
-                // Auto transfer to seller (DISABLED as per user request: manual settlement only)
-                // await transferToSeller(order._id);
+                // Decrease product stock for each item
+                for (const order of orders) {
+                    await Product.findByIdAndUpdate(
+                        order.product,
+                        { $inc: { countInStock: -order.quantity } }
+                    );
+                }
             }
 
             res.status(200).json({ success: true, message: 'Payment verified successfully' });
