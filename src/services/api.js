@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Get base URL from environment variables or use default
 // const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const BASE_URL = 'https://bharat-mart.onrender.com';
+const BASE_URL = 'https://back.bazaarindia.org';
 const API_URL = `${BASE_URL}/api`;
 
 export { BASE_URL, API_URL };
@@ -36,7 +36,7 @@ api.interceptors.response.use(
       // Handle unauthorized (session expired)
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
-      // window.location.href = '/login';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -47,7 +47,7 @@ export const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('userInfo');
   // Optional: redirect to login
-  // window.location.href = '/login';
+  window.location.href = '/login';
 };
 
 export const login = async (credentials) => {

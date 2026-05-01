@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Get base URL from environment variables or use default
 // const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const API_URL = 'https://bharat-mart.onrender.com/api';
+const API_URL = 'https://back.bazaarindia.org/api';
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -33,7 +33,7 @@ axiosInstance.interceptors.response.use(
       // Handle unauthorized (session expired)
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
-      // window.location.href = '/login';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

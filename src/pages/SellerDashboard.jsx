@@ -8,7 +8,7 @@ import {
     Plus, Package, MessageSquare, Trash2, Edit, Loader2,
     LayoutDashboard, ShoppingBag, Send, Settings, User,
     Bell, ChevronRight, CheckCircle, Clock, ExternalLink,
-    PieChart as LucidePieChart, Briefcase, IndianRupee, TrendingUp, Inbox, BarChart3, Camera
+    PieChart as LucidePieChart, Briefcase, IndianRupee, TrendingUp, Inbox, BarChart3, Camera, Menu
 } from 'lucide-react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
