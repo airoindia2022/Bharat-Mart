@@ -97,9 +97,9 @@ const ProductList = () => {
         <div className="container" style={{ padding: '40px 1rem' }}>
             <div style={{ marginBottom: '40px' }}>
                 <div className="md-flex-col" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
-                    <div className="md-w-full">
+                    <div className="md-w-full text-center-mobile">
                         {sellerInfo ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }} className="md-flex-col">
                                 <button onClick={() => navigate(-1)} className="btn btn-outline" style={{ padding: '8px' }}><ArrowLeft size={18} /></button>
                                 {sellerInfo.logoURL && <img src={sellerInfo.logoURL} style={{ width: '50px', height: '50px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />}
                                 <div>

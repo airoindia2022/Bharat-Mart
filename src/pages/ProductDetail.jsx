@@ -317,31 +317,27 @@ const ProductDetail = () => {
 
                             <div className="bm-cta-hub">
                                 <motion.button
-                                    whileHover={{ scale: (product.countInStock || 0) < orderData.quantity ? 1 : 1.02 }}
-                                    whileTap={{ scale: (product.countInStock || 0) < orderData.quantity ? 1 : 0.98 }}
+                                    whileHover={{ y: -2, boxShadow: '0 8px 20px rgba(0,0,0,0.06)' }}
+                                    whileTap={{ scale: 0.98 }}
                                     onClick={() => addToCart(product, orderData.quantity)}
-                                    className="bm-secondary-cta"
+                                    className="bm-minimal-btn secondary"
                                     disabled={loading || (product.countInStock || 0) < orderData.quantity}
-                                    style={{
-                                        opacity: (product.countInStock || 0) < orderData.quantity ? 0.7 : 1,
-                                        cursor: (product.countInStock || 0) < orderData.quantity ? 'not-allowed' : 'pointer'
-                                    }}
                                 >
-                                    <ShoppingBag size={20} /> Add to Cart
+                                    <ShoppingCart size={20} />
+                                    <span>Add to Cart</span>
                                 </motion.button>
+                                
                                 <motion.button
-                                    whileHover={{ scale: (product.countInStock || 0) < orderData.quantity ? 1 : 1.02 }}
-                                    whileTap={{ scale: (product.countInStock || 0) < orderData.quantity ? 1 : 0.98 }}
+                                    whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.1)' }}
+                                    whileTap={{ scale: 0.98 }}
                                     onClick={handlePayment}
-                                    className="bm-primary-cta"
+                                    className="bm-minimal-btn primary"
                                     disabled={loading || (product.countInStock || 0) < orderData.quantity}
-                                    style={{
-                                        opacity: (product.countInStock || 0) < orderData.quantity ? 0.7 : 1,
-                                        cursor: (product.countInStock || 0) < orderData.quantity ? 'not-allowed' : 'pointer',
-                                        background: (product.countInStock || 0) < orderData.quantity ? '#6b7280' : 'var(--brand-blue)'
-                                    }}
                                 >
-                                    <Zap size={20} /> {(product.countInStock || 0) < orderData.quantity ? 'Out of Stock' : 'Buy It Now'}
+                                    <Zap size={20} fill="currentColor" />
+                                    <span>
+                                        {(product.countInStock || 0) < orderData.quantity ? 'Out of Stock' : 'Buy Now'}
+                                    </span>
                                 </motion.button>
                             </div>
                             <div className={`bm-accordion-item ${expandedSections.reviews ? 'open' : ''}`}>
@@ -574,8 +570,6 @@ const ProductDetail = () => {
 
                 /* Visual Stack */
                 .bm-visual-stack {
-                    position: sticky;
-                    top: 40px;
                     display: flex;
                     flex-direction: column; gap: 20px;
                 }
@@ -707,21 +701,59 @@ const ProductDetail = () => {
                 .qty-picker-inline input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
                 .qty-picker-inline input[type=number] { -moz-appearance: textfield; }
 
-                .bm-cta-hub { display: flex; gap: 20px; }
+                .bm-cta-hub { 
+                    display: flex; 
+                    gap: 12px; 
+                    margin-top: 15px;
+                }
                 
                 @media (max-width: 768px) {
-                    .bm-cta-hub { flex-direction: column; }
+                    .bm-cta-hub { gap: 10px; }
                 }
 
-                .bm-primary-cta, .bm-secondary-cta {
-                    flex: 1; height: 64px; border-radius: 16px; font-weight: 800;
-                    font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
-                    gap: 12px; cursor: pointer; transition: 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+                .bm-minimal-btn {
+                    flex: 1;
+                    height: 58px;
+                    border-radius: 14px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    font-size: 1.05rem;
+                    font-weight: 700;
+                    letter-spacing: -0.01em;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    border: none;
+                    cursor: pointer;
                 }
-                .bm-primary-cta { background: var(--foreground); color: var(--background); border: none; }
-                .bm-primary-cta:hover { opacity: 0.9; transform: translateY(-4px); box-shadow: 0 10px 20px -10px rgba(0,0,0,0.3); }
-                .bm-secondary-cta { background: var(--card); color: var(--foreground); border: 2px solid var(--border); }
-                .bm-secondary-cta:hover { border-color: var(--primary); color: var(--primary); }
+
+                .bm-minimal-btn.primary {
+                    background: var(--foreground);
+                    color: var(--background);
+                }
+
+                .bm-minimal-btn.secondary {
+                    background: var(--background);
+                    color: var(--foreground);
+                    border: 1.5px solid var(--border);
+                }
+
+                .bm-minimal-btn.primary:hover {
+                    opacity: 0.9;
+                }
+
+                .bm-minimal-btn.secondary:hover {
+                    border-color: var(--foreground);
+                    background: var(--accent);
+                }
+
+                .bm-minimal-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                    filter: grayscale(1);
+                    transform: none !important;
+                }
+
 
                 /* Accordion */
                 .bm-accordion-system { border-top: 1px solid var(--border); }

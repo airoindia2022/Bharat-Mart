@@ -154,13 +154,13 @@ const AdminDashboard = () => {
             
             <main className="admin-main">
                 <header className="admin-header">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div>
+                    <div className="md-flex-col" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                        <div className="text-center-mobile">
                             <h1>{view.charAt(0).toUpperCase() + view.slice(1)} Dashboard</h1>
                             <p>Manage your marketplace platform and monitor system performance.</p>
                         </div>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--secondary)', fontSize: '0.875rem', fontWeight: 500, padding: '0.5rem 1rem', background: 'var(--accent)', borderRadius: '12px' }}>
+                        <div className="md-w-full" style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--secondary)', fontSize: '0.875rem', fontWeight: 500, padding: '0.5rem 1rem', background: 'var(--accent)', borderRadius: '12px', flex: 1, justifyContent: 'center' }}>
                                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }}></span>
                                 Platform Status: Healthy
                             </div>

@@ -66,15 +66,15 @@ const Home = () => {
                 <div style={{ textAlign: 'center', padding: '100px' }}>Loading products...</div>
             ) : (
                 Object.entries(productsByCategory).map(([category, products]) => (
-                    <section key={category} style={{ padding: '60px 0', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--background)' }}>
+                    <section key={category} className="section-padding" style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--background)' }}>
                         <div className="container">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                                <h2 style={{ fontSize: '2rem', color: 'var(--foreground)' }}>{category}</h2>
+                            <div className="md-flex-col" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', gap: '10px' }}>
+                                <h2 style={{ fontSize: '2rem', color: 'var(--foreground)' }} className="text-center-mobile">{category}</h2>
                                 <Link to={`/products?category=${encodeURIComponent(category)}`} style={{ color: 'var(--primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}>
                                     View All <ChevronRight size={16} />
                                 </Link>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '25px' }}>
+                            <div className="grid-cols-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '25px' }}>
                                 {products.map(product => (
                                     <div key={product._id} className="card product-card fade-in" style={{ padding: '0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                                         <img

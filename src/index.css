@@ -186,6 +186,26 @@ button {
   .hero-title-mobile {
     font-size: 1.75rem !important;
   }
+
+  .section-padding {
+    padding: 40px 0 !important;
+  }
+
+  .grid-cols-1 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .text-center-mobile {
+    text-align: center !important;
+  }
+
+  .m-t-20-mobile {
+    margin-top: 20px !important;
+  }
+
+  .md-static {
+    position: static !important;
+  }
 }
 
 @media (min-width: 769px) {

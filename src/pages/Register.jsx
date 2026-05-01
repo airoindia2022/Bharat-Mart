@@ -33,7 +33,7 @@ const Register = () => {
     };
 
     return (
-        <div style={{ minHeight: 'calc(100vh - 70px)', padding: '50px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent)' }}>
+        <div className="section-padding" style={{ minHeight: 'calc(100vh - 70px)', padding: '50px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent)' }}>
             <div className="card" style={{ width: '100%', maxWidth: '600px', padding: '40px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '30px' }}>
                     <h1 style={{ fontSize: '2rem', marginBottom: '10px' }}>Create Account</h1>
@@ -43,7 +43,7 @@ const Register = () => {
                 {error && <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '5px', marginBottom: '20px', textAlign: 'center' }}>{error}</div>}
 
                 <form onSubmit={handleSubmit}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                    <div className="grid-cols-1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                         <div>
                             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Full Name</label>
                             <div style={{ position: 'relative' }}>

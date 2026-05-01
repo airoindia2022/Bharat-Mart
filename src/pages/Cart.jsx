@@ -134,11 +134,11 @@ const Cart = () => {
                 <div className="md-w-full" style={{ flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     {cartItems.map(item => (
                         <div key={item._id} className="card cart-item-card" style={{ padding: '20px' }}>
-                            <div className="md-flex-col" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                            <div className="md-flex-col" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
                                 <img 
                                     src={item.images?.[0] || 'https://via.placeholder.com/100'} 
                                     alt={item.name} 
-                                    style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)' }}
+                                    style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '12px', border: '1px solid var(--border)' }}
                                     className="md-w-full"
                                 />
                                 <div style={{ flex: 1, width: '100%' }}>
@@ -190,7 +190,7 @@ const Cart = () => {
                 </div>
 
                 {/* Summary Section */}
-                <div className="card summary-card md-w-full" style={{ padding: '30px', flex: '0 0 350px', position: 'sticky', top: '100px', minWidth: '300px' }}>
+                <div className="card summary-card md-w-full md-static" style={{ padding: '30px', flex: '0 0 350px', position: 'sticky', top: '100px', minWidth: '300px', height: 'fit-content' }}>
                     <h2 style={{ fontSize: '1.5rem', marginBottom: '20px' }}>Order Summary</h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', borderBottom: '1px solid var(--border)', paddingBottom: '20px', marginBottom: '20px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>

@@ -439,19 +439,19 @@ const SellerDashboard = () => {
             <main className="seller-main">
                 {view === 'dashboard' && (
                     <div className="fade-in">
-                        <div className="seller-header-flex">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        <div className="seller-header-flex md-flex-col" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', gap: '20px' }}>
+                            <div className="md-w-full" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                                 {user.logoURL && (
                                     <img src={user.logoURL} style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />
                                 )}
-                                <div>
+                                <div className="text-center-mobile">
                                     <h1 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '5px', color: 'var(--foreground)' }}>Welcome back, {user.name.split(' ')[0]}!</h1>
                                     <p style={{ color: 'var(--secondary)' }}>Here's what's happening with your store today.</p>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', gap: '12px' }}>
+                            <div className="md-w-full" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                                 <button className="btn btn-outline" style={{ padding: '0.6rem' }}><Bell size={20} /></button>
-                                <button onClick={() => { setEditMode(false); setShowAddModal(true); setNewProduct({ name: '', description: '', category: '', price: '', packagingType: 'Standard', brand: 'Generic', deliveryTime: '3-4 Days', origin: 'Made in India', specifications: [{ key: '', value: '' }], countInStock: 10 }); setImages([]); }} className="btn btn-primary" style={{ padding: '0.6rem 1.2rem' }}>
+                                <button onClick={() => { setEditMode(false); setShowAddModal(true); setNewProduct({ name: '', description: '', category: '', price: '', packagingType: 'Standard', brand: 'Generic', deliveryTime: '3-4 Days', origin: 'Made in India', specifications: [{ key: '', value: '' }], countInStock: 10 }); setImages([]); }} className="btn btn-primary" style={{ padding: '0.6rem 1.2rem', flex: 1, justifyContent: 'center' }}>
                                     <Plus size={20} /> New Product
                                 </button>
                             </div>
@@ -489,7 +489,7 @@ const SellerDashboard = () => {
 
                         {/* Charts Section */}
                         {stats && stats.salesByMonth && stats.salesByMonth.length > 0 && (
-                            <div className="dashboard-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px', marginBottom: '40px' }}>
+                            <div className="dashboard-chart-grid grid-cols-1" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px', marginBottom: '40px' }}>
                                 <div className="card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
                                     <h3 style={{ marginBottom: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <BarChart3 size={20} color="var(--primary)" /> Sales Trend (Last 6 Months)
