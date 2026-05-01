@@ -88,16 +88,23 @@ const transferToSeller = async (orderId) => {
 // @access  Private
 exports.createOrder = async (req, res) => {
     try {
-        const { productId, amount, quantity, sellerId } = req.body;
+        const { productId, amount, quantity } = req.body;
         
-        // Check stock availability
+        // Check stock availability and fetch product info
         const product = await Product.findById(productId);
-        if (!product || product.countInStock < quantity) {
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Product not found' });
+        }
+        
+        if (product.countInStock < quantity) {
             return res.status(400).json({ success: false, message: 'Stock not available for this quantity' });
         }
 
+        // Use price from DB for security
+        const finalAmount = product.price * quantity;
+
         const options = {
-            amount: amount * 100, // Amount in paise
+            amount: Math.round(finalAmount * 100), // Amount in paise
             currency: "INR",
             receipt: `receipt_${Date.now()}`,
         };
@@ -108,9 +115,9 @@ exports.createOrder = async (req, res) => {
         const order = await Order.create({
             buyer: req.user._id,
             product: productId,
-            seller: sellerId,
+            seller: product.seller, // Get seller from product in DB
             razorpayOrderId: razorpayOrder.id,
-            amount,
+            amount: finalAmount,
             quantity,
             status: 'Pending',
         });
@@ -122,7 +129,11 @@ exports.createOrder = async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating Razorpay order:', error);
-        res.status(500).json({ success: false, message: 'Failed to create payment order' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to create payment order',
+            error: error.message 
+        });
     }
 };
 
@@ -137,19 +148,33 @@ exports.createCartOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Cart is empty' });
         }
 
-        // Validate stock for all items
+        if (!totalAmount || totalAmount <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid total amount' });
+        }
+
+        // Validate stock and fetch seller IDs for all items
+        const validatedItems = [];
         for (const item of cartItems) {
             const product = await Product.findById(item._id);
-            if (!product || product.countInStock < item.quantity) {
+            if (!product) {
+                return res.status(404).json({ success: false, message: `Product not found: ${item._id}` });
+            }
+            if (product.countInStock < item.quantity) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: `Stock not available for ${product ? product.name : 'Unknown Product'}` 
+                    message: `Stock not available for ${product.name}` 
                 });
             }
+            // Store the item with the seller ID from DB for reliability
+            validatedItems.push({
+                ...item,
+                seller: product.seller,
+                price: product.price // Use price from DB for security
+            });
         }
 
         const options = {
-            amount: totalAmount * 100, // Amount in paise
+            amount: Math.round(totalAmount * 100), // Ensure it's an integer for Razorpay
             currency: "INR",
             receipt: `receipt_cart_${Date.now()}`,
         };
@@ -157,11 +182,11 @@ exports.createCartOrder = async (req, res) => {
         const razorpayOrder = await razorpay.orders.create(options);
 
         // Store multiple orders in our database, all linked to the same razorpayOrderId
-        const orderPromises = cartItems.map(item => {
+        const orderPromises = validatedItems.map(item => {
             return Order.create({
                 buyer: req.user._id,
                 product: item._id,
-                seller: item.seller, // Assumes seller ID is present in the cart item
+                seller: item.seller,
                 razorpayOrderId: razorpayOrder.id,
                 amount: item.price * item.quantity,
                 quantity: item.quantity,
@@ -176,8 +201,12 @@ exports.createCartOrder = async (req, res) => {
             order: razorpayOrder
         });
     } catch (error) {
-        console.error('Error creating Razorpay cart order:', error);
-        res.status(500).json({ success: false, message: 'Failed to create payment order' });
+        console.error('CRITICAL: Error creating Razorpay cart order:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to create payment order',
+            error: error.message 
+        });
     }
 };
 
