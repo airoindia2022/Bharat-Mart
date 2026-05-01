@@ -27,16 +27,16 @@ const OrderManagement = ({ orders, onSettle, onRefund }) => {
 
   return (
     <div className="fade-in">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="seller-header-flex">
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>All Platform Orders</h2>
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 auto' }}>
             <Search size={18} style={{ position: 'absolute', left: '1rem', color: 'var(--secondary)' }} />
             <input 
               type="text" 
               placeholder="Search ID, product or user..." 
               className="input" 
-              style={{ width: '250px', paddingLeft: '2.75rem', height: '44px', borderRadius: '12px' }}
+              style={{ width: '100%', maxWidth: '250px', paddingLeft: '2.75rem', height: '44px', borderRadius: '12px' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />

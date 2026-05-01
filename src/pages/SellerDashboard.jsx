@@ -47,6 +47,36 @@ const CATEGORY_SPECS = {
         { key: 'Connectivity', value: 'USB/Wireless' },
         { key: 'Compatibility', value: 'Windows/macOS' },
         { key: 'Warranty', value: '1 Year' }
+    ],
+    'Industrial Machinery': [
+        { key: 'Power Source', value: 'Electric/Manual' },
+        { key: 'Capacity', value: '' },
+        { key: 'Warranty', value: '1-2 Years' },
+        { key: 'Usage', value: 'Industrial' }
+    ],
+    'Home & Kitchen': [
+        { key: 'Material', value: 'Steel/Plastic' },
+        { key: 'Capacity', value: '' },
+        { key: 'Warranty', value: '1 Year' },
+        { key: 'Features', value: 'Durable' }
+    ],
+    'Electronics & Home Appliances': [
+        { key: 'Power Consumption', value: '' },
+        { key: 'Voltage', value: '220V' },
+        { key: 'Warranty', value: '1 Year' },
+        { key: 'Certifications', value: 'BEE Star' }
+    ],
+    'Office Supplies': [
+        { key: 'Material', value: '' },
+        { key: 'Type', value: 'Standard' },
+        { key: 'Durable', value: 'Yes' },
+        { key: 'Pack of', value: '1' }
+    ],
+    'Agriculture & Food': [
+        { key: 'Grade', value: 'Organic/Standard' },
+        { key: 'Shelf Life', value: '6-12 Months' },
+        { key: 'Type', value: '' },
+        { key: 'Certification', value: 'FSSAI/ISO' }
     ]
 };
 
@@ -59,6 +89,7 @@ const SellerDashboard = () => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState('dashboard'); // 'dashboard', 'products', 'settings', 'orders'
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [replies, setReplies] = useState({});
 
     // Settings state
@@ -117,6 +148,8 @@ const SellerDashboard = () => {
             specifications: specs
         }));
     };
+
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     const handleSpecChange = (index, field, value) => {
         const updatedSpecs = [...newProduct.specifications];
@@ -329,7 +362,7 @@ const SellerDashboard = () => {
 
     const SidebarItem = ({ id, icon: Icon, label }) => (
         <div
-            onClick={() => setView(id)}
+            onClick={() => { setView(id); setIsSidebarOpen(false); }}
             style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -350,9 +383,17 @@ const SellerDashboard = () => {
     );
 
     return (
-        <div style={{ display: 'flex', minHeight: 'calc(100vh - 64px)', backgroundColor: 'var(--background)', paddingTop: '20px' }}>
+        <div className="seller-dashboard-container">
+            {/* Sidebar Overlay */}
+            <div className={`admin-sidebar-overlay ${isSidebarOpen ? 'active' : ''}`} onClick={() => setIsSidebarOpen(false)}></div>
+            
+            {/* Mobile Toggle */}
+            <button className="admin-mobile-menu-btn" onClick={toggleSidebar}>
+                <Menu size={24} />
+            </button>
+
             {/* Sidebar */}
-            <aside style={{ width: '280px', padding: '0 20px', borderRight: '1px solid var(--border)', position: 'sticky', top: '84px', height: 'calc(100vh - 104px)' }}>
+            <aside className={`seller-sidebar ${isSidebarOpen ? 'active' : ''}`}>
                 <div style={{ marginBottom: '30px', padding: '0 16px', display: 'flex', alignItems: 'center', gap: '15px' }}>
                     {user.logoURL && (
                         <img src={user.logoURL} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />
@@ -395,10 +436,10 @@ const SellerDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main style={{ flex: 1, padding: '0 40px 40px 40px', overflowY: 'auto' }}>
+            <main className="seller-main">
                 {view === 'dashboard' && (
                     <div className="fade-in">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '30px' }}>
+                        <div className="seller-header-flex">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                                 {user.logoURL && (
                                     <img src={user.logoURL} style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />
@@ -417,7 +458,7 @@ const SellerDashboard = () => {
                         </div>
 
                         {/* Stats Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+                        <div className="stat-card-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                             <StatCard
                                 title="Total Products"
                                 value={stats?.totalProducts || products.length}
@@ -448,7 +489,7 @@ const SellerDashboard = () => {
 
                         {/* Charts Section */}
                         {stats && stats.salesByMonth && stats.salesByMonth.length > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px', marginBottom: '40px' }}>
+                            <div className="dashboard-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px', marginBottom: '40px' }}>
                                 <div className="card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
                                     <h3 style={{ marginBottom: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <BarChart3 size={20} color="var(--primary)" /> Sales Trend (Last 6 Months)
@@ -531,7 +572,7 @@ const SellerDashboard = () => {
                         </div>
 
                         {/* Recent Activity Mini Tables */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px' }}>
+                        <div className="dashboard-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px' }}>
                             <div className="card">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                                     <h3 style={{ fontWeight: 700 }}>Recently Added Products</h3>
@@ -577,7 +618,7 @@ const SellerDashboard = () => {
                             </button>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
                             {products.map(product => (
                                 <div key={product._id} className="card product-card" style={{ display: 'flex', gap: '15px', position: 'relative' }}>
                                     <div style={{ width: '100px', height: '100px', flexShrink: 0 }}>
@@ -618,8 +659,8 @@ const SellerDashboard = () => {
                             </div>
                         </div>
 
-                        <div style={{ marginTop: '20px', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                        <div className="bm-table-container">
+                            <table className="bm-table">
                                 <thead style={{ backgroundColor: 'var(--accent)', fontWeight: 'bold' }}>
                                     <tr>
                                         <th style={{ padding: '15px' }}>Order ID</th>

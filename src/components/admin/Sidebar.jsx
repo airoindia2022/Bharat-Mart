@@ -10,7 +10,7 @@ import {
   Bell
 } from 'lucide-react';
 
-const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
+const Sidebar = ({ activeTab, setActiveTab, user, onLogout, isOpen }) => {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
     { id: 'products', label: 'Products', icon: <Package size={20} /> },
@@ -19,7 +19,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
   ];
 
   return (
-    <aside className="admin-sidebar">
+    <aside className={`admin-sidebar ${isOpen ? 'active' : ''}`}>
       <div className="admin-sidebar-header">
         <div 
           className="stat-icon" 
@@ -27,7 +27,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }) => {
         >
           <ShieldCheck size={24} />
         </div>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.5px' }}>Bharat Mart</h2>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.5px' }}>BazaarIndia</h2>
       </div>
 
       <nav className="admin-sidebar-nav">

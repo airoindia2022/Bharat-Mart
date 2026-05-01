@@ -39,7 +39,11 @@ const ProductList = () => {
             setSellerInfo(null);
         }
 
-        fetchProducts({ keyword: keywordParam || '', seller: sellerParam || '' }, controller.signal);
+        fetchProducts({ 
+            keyword: keywordParam || '', 
+            seller: sellerParam || '',
+            category: categoryParam || ''
+        }, controller.signal);
         return () => controller.abort();
     }, [location.search]);
 
@@ -92,23 +96,23 @@ const ProductList = () => {
     return (
         <div className="container" style={{ padding: '40px 1rem' }}>
             <div style={{ marginBottom: '40px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-                    <div>
+                <div className="md-flex-col" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px' }}>
+                    <div className="md-w-full">
                         {sellerInfo ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                 <button onClick={() => navigate(-1)} className="btn btn-outline" style={{ padding: '8px' }}><ArrowLeft size={18} /></button>
                                 {sellerInfo.logoURL && <img src={sellerInfo.logoURL} style={{ width: '50px', height: '50px', borderRadius: '10px', objectFit: 'cover', border: '1px solid var(--border)' }} alt="" />}
                                 <div>
-                                    <h1 style={{ fontSize: '1.8rem', margin: 0 }}>{sellerInfo.companyName || sellerInfo.name}'s Profile</h1>
-                                    <p style={{ color: 'var(--secondary)', margin: 0 }}>Showing all products from this seller</p>
+                                    <h1 style={{ fontSize: '1.8rem', margin: 0 }}>{sellerInfo.companyName || sellerInfo.name}</h1>
+                                    <p style={{ color: 'var(--secondary)', margin: 0 }}>Verified Seller</p>
                                 </div>
                             </div>
                         ) : (
                             <h1 style={{ fontSize: '2rem' }}>All Products</h1>
                         )}
                     </div>
-                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
-                        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', maxWidth: '400px', width: '100%' }}>
+                    <div className="md-w-full" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
+                        <form onSubmit={handleSearch} className="md-w-full" style={{ display: 'flex', gap: '10px', maxWidth: '400px', flex: 1 }}>
                             <input
                                 type="text"
                                 className="input"
@@ -120,9 +124,9 @@ const ProductList = () => {
                             <button type="submit" className="btn btn-primary">Search</button>
                         </form>
                         <button
-                            className="btn btn-outline"
+                            className="btn btn-outline md-w-full"
                             onClick={() => setShowFilters(!showFilters)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '5px', justifyContent: 'center' }}
                         >
                             <Filter size={16} /> Filters
                         </button>
@@ -131,7 +135,7 @@ const ProductList = () => {
 
                 {showFilters && (
                     <div className="card" style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end', width: '100%' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '200px' }}>
+                        <div className="md-w-full" style={{ display: 'flex', flexDirection: 'column', gap: '5px', minWidth: '200px' }}>
                             <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Category</label>
                             <select
                                 className="input"
@@ -140,33 +144,33 @@ const ProductList = () => {
                                 onChange={(e) => setSelectedCategory(e.target.value)}
                             >
                                 {uniqueCategories.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
+                                     <option key={cat} value={cat}>{cat}</option>
+                                 ))}
                             </select>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Min Price (₹)</label>
-                            <input
-                                type="number"
-                                className="input"
-                                placeholder="0"
-                                value={minPrice}
-                                onChange={(e) => setMinPrice(e.target.value)}
-                                style={{ width: '120px' }}
-                            />
+                        <div style={{ display: 'flex', gap: '20px', width: '100%', flexWrap: 'wrap' }} className="md-gap-4">
+                            <div className="md-w-full" style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
+                                <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Min Price (₹)</label>
+                                <input
+                                    type="number"
+                                    className="input"
+                                    placeholder="0"
+                                    value={minPrice}
+                                    onChange={(e) => setMinPrice(e.target.value)}
+                                />
+                            </div>
+                            <div className="md-w-full" style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1 }}>
+                                <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Max Price (₹)</label>
+                                <input
+                                    type="number"
+                                    className="input"
+                                    placeholder="Any"
+                                    value={maxPrice}
+                                    onChange={(e) => setMaxPrice(e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                            <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>Max Price (₹)</label>
-                            <input
-                                type="number"
-                                className="input"
-                                placeholder="Any"
-                                value={maxPrice}
-                                onChange={(e) => setMaxPrice(e.target.value)}
-                                style={{ width: '120px' }}
-                            />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '10px' }}>
+                        <div className="md-w-full" style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '10px' }}>
                             <input
                                 type="checkbox"
                                 id="verifiedOnly"
@@ -178,9 +182,10 @@ const ProductList = () => {
                                 Verified Suppliers Only <ShieldCheck size={16} color="var(--brand-green)" />
                             </label>
                         </div>
-                        <div style={{ marginLeft: 'auto', paddingBottom: '5px' }}>
+                        <div className="md-w-full" style={{ marginLeft: 'auto', paddingBottom: '5px' }}>
                             <button
-                                className="btn btn-outline"
+                                className="btn btn-outline md-w-full"
+                                style={{ justifyContent: 'center' }}
                                 onClick={() => {
                                     setSelectedCategory('All Categories');
                                     setMinPrice('');

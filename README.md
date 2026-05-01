@@ -1,4 +1,4 @@
-# Bharat Mart - B2B Marketplace
+# BazaarIndia - B2B Marketplace
 
 A full-stack MERN B2B marketplace application inspired by IndiaMart, featuring light/dark themes, user role management (Buyer, Seller, Admin), and Cloudinary integration for product images.
 

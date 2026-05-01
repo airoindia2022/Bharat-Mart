@@ -22,7 +22,7 @@ const Footer = () => {
                     {/* Company Info */}
                     <div style={{ flex: '1 1 250px' }}>
                         <h2 style={{ color: 'var(--brand-blue)', fontSize: '1.8rem', marginBottom: '15px', fontWeight: 'bold' }}>
-                            Bharat Mart
+                            Bazaar India
                         </h2>
                         <p style={{ color: 'var(--secondary)', marginBottom: '20px', lineHeight: '1.6' }}>
                             India's Largest B2B Marketplace. Connecting buyers with genuine sellers and manufacturers across the nation.
@@ -71,7 +71,7 @@ const Footer = () => {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--secondary)' }}>
                                 <Mail size={18} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                                <span>support@bharatmart.com</span>
+                                <span>support@bazaarindia.org</span>
                             </div>
                         </div>
                     </div>

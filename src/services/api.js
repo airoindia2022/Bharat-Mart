@@ -2,7 +2,10 @@ import axios from 'axios';
 
 // Get base URL from environment variables or use default
 // const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const API_URL = 'https://bharat-mart.onrender.com/api';
+const BASE_URL = 'https://bharat-mart.onrender.com';
+const API_URL = `${BASE_URL}/api`;
+
+export { BASE_URL, API_URL };
 
 const api = axios.create({
   baseURL: API_URL,

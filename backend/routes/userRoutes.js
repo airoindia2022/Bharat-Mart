@@ -1,7 +1,6 @@
-import express from 'express';
-import multer from 'multer';
-import { storage } from '../config/cloudinary.js';
-import { 
+const express = require('express');
+const upload = require('../config/multer.js');
+const { 
     registerUser, 
     loginUser, 
     getUserProfile, 
@@ -11,11 +10,11 @@ import {
     getUserPublicProfile,
     toggleWishlist,
     getWishlist
-} from '../controllers/userController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+} = require('../controllers/userController.js');
+const { protect, admin } = require('../middleware/authMiddleware.js');
 
 const router = express.Router();
-const upload = multer({ storage });
+
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
@@ -30,4 +29,4 @@ router.route('/wishlist')
 router.get('/:id', getUserPublicProfile);
 router.get('/', protect, admin, getUsers);
 
-export default router;
+module.exports = router;

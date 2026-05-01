@@ -1,11 +1,11 @@
-import Order from '../models/Order.js';
-import User from '../models/User.js';
-import Product from '../models/Product.js';
+const Order = require('../models/Order.js');
+const User = require('../models/User.js');
+const Product = require('../models/Product.js');
 
 // @desc    Get Admin Stats
 // @route   GET /api/stats/admin
 // @access  Private/Admin
-export const getAdminStats = async (req, res) => {
+exports.getAdminStats = async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
         const totalSellers = await User.countDocuments({ role: 'seller' });
@@ -70,7 +70,7 @@ export const getAdminStats = async (req, res) => {
 // @desc    Get Seller Stats
 // @route   GET /api/stats/seller
 // @access  Private/Seller
-export const getSellerStats = async (req, res) => {
+exports.getSellerStats = async (req, res) => {
     try {
         const totalProducts = await Product.countDocuments({ seller: req.user._id });
         

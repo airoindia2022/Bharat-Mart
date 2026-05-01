@@ -1,5 +1,5 @@
-import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+const jwt = require('jsonwebtoken');
+const User = require('../models/User.js');
 
 const protect = async (req, res, next) => {
     let token;
@@ -57,4 +57,4 @@ const restoreUser = async (req, res, next) => {
     }
 };
 
-export { protect, admin, seller, restoreUser };
+module.exports = { protect, admin, seller, restoreUser };

@@ -1,13 +1,24 @@
-import Product from '../models/Product.js';
-import User from '../models/User.js';
+const Product = require('../models/Product.js');
+const User = require('../models/User.js');
+const Image = require('../models/Image.js');
 
-export const createProduct = async (req, res) => {
+exports.createProduct = async (req, res) => {
     try {
         console.log('Create Product Request Body:', req.body);
         console.log('Create Product Files:', req.files);
         
         const { name, description, category, price, packagingType, brand, deliveryTime, origin, specifications, countInStock } = req.body;
-        const images = req.files ? req.files.map(file => file.path) : [];
+        const images = [];
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                const image = await Image.create({
+                    data: file.buffer,
+                    contentType: file.mimetype,
+                    fileName: file.originalname
+                });
+                images.push(`${req.protocol}://${req.get('host')}/api/images/${image._id}`);
+            }
+        }
 
         // Parse specifications if it's sent as a JSON string
         let parsedSpecs = [];
@@ -42,7 +53,7 @@ export const createProduct = async (req, res) => {
     }
 };
 
-export const getProducts = async (req, res) => {
+exports.getProducts = async (req, res) => {
     let matchConditions = [];
 
     if (req.query.keyword) {
@@ -67,6 +78,10 @@ export const getProducts = async (req, res) => {
     if (req.query.seller) {
         matchConditions.push({ seller: req.query.seller });
     }
+    
+    if (req.query.category) {
+        matchConditions.push({ category: req.query.category });
+    }
 
     if (!req.user || req.user.role === 'customer') {
         matchConditions.push({ isApproved: true });
@@ -85,7 +100,7 @@ export const getProducts = async (req, res) => {
     res.json(products);
 };
 
-export const getProductById = async (req, res) => {
+exports.getProductById = async (req, res) => {
     const product = await Product.findById(req.params.id).populate('seller', 'name companyName phoneNumber address logoURL');
     if (product) {
         // Check if product is approved
@@ -103,7 +118,7 @@ export const getProductById = async (req, res) => {
     }
 };
 
-export const updateProduct = async (req, res) => {
+exports.updateProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (product) {
         if (product.seller.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
@@ -130,7 +145,16 @@ export const updateProduct = async (req, res) => {
         }
         
         if (req.files && req.files.length > 0) {
-            product.images = req.files.map(file => file.path);
+            const images = [];
+            for (const file of req.files) {
+                const image = await Image.create({
+                    data: file.buffer,
+                    contentType: file.mimetype,
+                    fileName: file.originalname
+                });
+                images.push(`${req.protocol}://${req.get('host')}/api/images/${image._id}`);
+            }
+            product.images = images;
         }
 
         const updatedProduct = await product.save();
@@ -140,7 +164,7 @@ export const updateProduct = async (req, res) => {
     }
 };
 
-export const deleteProduct = async (req, res) => {
+exports.deleteProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (product) {
         if (product.seller.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
@@ -153,7 +177,7 @@ export const deleteProduct = async (req, res) => {
     }
 };
 
-export const approveProduct = async (req, res) => {
+exports.approveProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (product) {
         product.isApproved = true;
@@ -164,7 +188,7 @@ export const approveProduct = async (req, res) => {
     }
 };
 
-export const createProductReview = async (req, res) => {
+exports.createProductReview = async (req, res) => {
     const { rating, comment } = req.body;
     const product = await Product.findById(req.params.id);
 

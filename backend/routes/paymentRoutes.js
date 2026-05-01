@@ -1,6 +1,6 @@
-import express from 'express';
-import { createOrder, createCartOrder, verifyPayment, getMyOrders, getSellerOrders, getAllOrders, settleOrderManual, refundOrderManual, updateOrderStatus } from '../controllers/paymentController.js';
-import { protect, seller, admin } from '../middleware/authMiddleware.js';
+const express = require('express');
+const { createOrder, createCartOrder, verifyPayment, getMyOrders, getSellerOrders, getAllOrders, settleOrderManual, refundOrderManual, updateOrderStatus } = require('../controllers/paymentController.js');
+const { protect, seller, admin } = require('../middleware/authMiddleware.js');
 
 const router = express.Router();
 
@@ -14,4 +14,4 @@ router.put('/settle-order/:id', protect, admin, settleOrderManual);
 router.put('/refund-order/:id', protect, admin, refundOrderManual);
 router.put('/order/:id/status', protect, updateOrderStatus);
 
-export default router;
+module.exports = router;

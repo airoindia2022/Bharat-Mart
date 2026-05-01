@@ -110,7 +110,7 @@ const ProductDetail = () => {
                 key: "rzp_test_SNzPfkHs3w4syf",
                 amount: order.amount,
                 currency: order.currency,
-                name: "Bharat Mart",
+                name: "BazaarIndia",
                 description: `Purchase: ${product.name}`,
                 order_id: order.id,
                 handler: async function (response) {
@@ -193,7 +193,7 @@ const ProductDetail = () => {
                         <ChevronLeft size={18} /> Back
                     </button>
                     <nav className="bm-breadcrumbs">
-                        <span>Bharat Mart</span>
+                        <span>BazaarIndia</span>
                         <ChevronRightIcon />
                         <span>{product.category}</span>
                         <ChevronRightIcon />
@@ -423,7 +423,7 @@ const ProductDetail = () => {
                                     animate={{ height: expandedSections.description ? 'auto' : 0, opacity: expandedSections.description ? 1 : 0 }}
                                     className="accordion-content"
                                 >
-                                    <p>{product.description || "Indulge in the finest quality product designed for excellence and durability. Bharat Mart ensures every unit meets global standards of craftsmanship."}</p>
+                                    <p>{product.description || "Indulge in the finest quality product designed for excellence and durability. BazaarIndia ensures every unit meets global standards of craftsmanship."}</p>
                                 </motion.div>
                             </div>
 
@@ -471,7 +471,7 @@ const ProductDetail = () => {
                                     )}
                                 </div>
                                 <div className="seller-details">
-                                    <h3>{product.seller?.companyName || 'Bharat Enterprises'}</h3>
+                                    <h3>{product.seller?.companyName || 'BazaarIndia Enterprises'}</h3>
                                     <p><MapPin size={12} /> {product.seller?.address || 'Mumbai, MH, India'}</p>
                                 </div>
                             </div>
@@ -505,8 +505,6 @@ const ProductDetail = () => {
                     </aside>
                 </main>
             </div>
-
-
             <style>{`
                 .bm-product-page {
                     background: var(--background);
@@ -522,12 +520,21 @@ const ProductDetail = () => {
                     padding: 0 40px;
                 }
 
+                @media (max-width: 1024px) {
+                    .bm-max-container { padding: 0 20px; }
+                }
+
                 /* Header & Nav */
                 .bm-page-header {
                     display: flex;
                     align-items: center;
                     gap: 30px;
                     padding: 40px 0;
+                }
+
+                @media (max-width: 768px) {
+                    .bm-page-header { padding: 20px 0; gap: 15px; flex-direction: column; align-items: flex-start; }
+                    .bm-breadcrumbs { display: none; }
                 }
 
                 .bm-glass-btn {
@@ -553,13 +560,23 @@ const ProductDetail = () => {
                     align-items: start;
                 }
 
+                @media (max-width: 1200px) {
+                    .bm-layout-grid { grid-template-columns: 1fr 1fr; gap: 40px; }
+                    .bm-sidebar-stack { grid-column: span 2; }
+                }
+
+                @media (max-width: 768px) {
+                    .bm-layout-grid { grid-template-columns: 1fr; gap: 30px; }
+                    .bm-sidebar-stack { grid-column: span 1; order: -1; }
+                    .bm-visual-stack { position: relative; top: 0; }
+                }
+
                 /* Visual Stack */
                 .bm-visual-stack {
                     position: sticky;
                     top: 40px;
                     display: flex;
-                    flex-direction: column;
-                    gap: 20px;
+                    flex-direction: column; gap: 20px;
                 }
 
                 .bm-main-display {
@@ -619,6 +636,10 @@ const ProductDetail = () => {
                     display: flex; flex-direction: column; gap: 40px;
                 }
 
+                @media (max-width: 768px) {
+                    .bm-content-stack { gap: 25px; }
+                }
+
                 .bm-supra-text {
                     font-size: 0.85rem; font-weight: 800; color: var(--primary);
                     text-transform: uppercase; letter-spacing: 2px;
@@ -629,18 +650,31 @@ const ProductDetail = () => {
                     line-height: 1.1; color: var(--foreground);
                 }
 
+                @media (max-width: 768px) {
+                    .bm-product-identity h1 { font-size: 1.8rem; }
+                }
+
                 .bm-rating-snap { display: flex; align-items: center; gap: 15px; color: var(--secondary); font-size: 0.9rem; }
                 .bm-rating-snap .stars { display: flex; gap: 2px; }
 
                 .bm-pricing-engine {
                     background: var(--accent); padding: 35px; border-radius: 24px;
                 }
+                
+                @media (max-width: 768px) {
+                    .bm-pricing-engine { padding: 20px; }
+                }
+
                 .price-tag { display: flex; align-items: baseline; gap: 8px; }
                 .price-tag .currency { font-size: 1.5rem; font-weight: 600; color: var(--foreground); }
                 .price-tag .amount { font-size: 3.5rem; font-weight: 900; color: var(--foreground); letter-spacing: -2px; }
                 .price-tag .unit { font-size: 1.1rem; color: var(--secondary); font-weight: 500; }
 
-                .tax-legend { margin-top: 20px; display: flex; gap: 25px; }
+                @media (max-width: 768px) {
+                    .price-tag .amount { font-size: 2.5rem; }
+                }
+
+                .tax-legend { margin-top: 20px; display: flex; gap: 25px; flex-wrap: wrap; }
                 .tax-legend p { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: var(--secondary); }
 
                 .bm-order-configuration {
@@ -655,56 +689,29 @@ const ProductDetail = () => {
                 .config-box p { font-size: 1.1rem; font-weight: 700; color: var(--foreground); margin-top: 8px; }
 
                 .qty-picker-inline {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    margin-top: 10px;
+                    display: flex; align-items: center; gap: 10px; margin-top: 10px;
                 }
                 .qty-picker-inline button {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 8px;
-                    border: 1.5px solid var(--border);
-                    background: var(--accent);
-                    color: var(--foreground);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: 0.2s;
+                    width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border);
+                    background: var(--accent); color: var(--foreground); display: flex; align-items: center; justify-content: center;
+                    cursor: pointer; transition: 0.2s;
                 }
-                .qty-picker-inline button:hover:not(:disabled) {
-                    background: var(--foreground);
-                    color: var(--background);
-                    border-color: var(--foreground);
-                }
-                .qty-picker-inline button:disabled {
-                    opacity: 0.3;
-                    cursor: not-allowed;
-                }
+                .qty-picker-inline button:hover:not(:disabled) { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+                .qty-picker-inline button:disabled { opacity: 0.3; cursor: not-allowed; }
                 .qty-picker-inline input {
-                    width: 45px;
-                    text-align: center;
-                    border: none;
-                    background: none;
-                    font-weight: 800;
-                    color: var(--foreground);
-                    font-size: 1.1rem;
-                    padding: 0;
-                    outline: none;
+                    width: 45px; text-align: center; border: none; background: none;
+                    font-weight: 800; color: var(--foreground); font-size: 1.1rem; padding: 0; outline: none;
                 }
-                /* Hide arrows for Chrome, Safari, Edge, Opera */
                 .qty-picker-inline input::-webkit-outer-spin-button,
-                .qty-picker-inline input::-webkit-inner-spin-button {
-                  -webkit-appearance: none;
-                  margin: 0;
-                }
-                /* Hide arrows for Firefox */
-                .qty-picker-inline input[type=number] {
-                  -moz-appearance: textfield;
-                }
+                .qty-picker-inline input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+                .qty-picker-inline input[type=number] { -moz-appearance: textfield; }
 
                 .bm-cta-hub { display: flex; gap: 20px; }
+                
+                @media (max-width: 768px) {
+                    .bm-cta-hub { flex-direction: column; }
+                }
+
                 .bm-primary-cta, .bm-secondary-cta {
                     flex: 1; height: 64px; border-radius: 16px; font-weight: 800;
                     font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
@@ -757,20 +764,12 @@ const ProductDetail = () => {
                 }
                 .ach-box span { font-size: 0.7rem; font-weight: 700; color: var(--secondary); text-transform: uppercase; }
 
-                .seller-contact-actions { display: flex; flex-direction: column; gap: 12px; }
-                .contact-link {
-                    height: 48px; border-radius: 12px; display: flex; align-items: center;
-                    justify-content: center; gap: 10px; font-weight: 700; font-size: 0.9rem;
-                    transition: 0.3s;
-                }
-
                 .bm-trust-banner {
                     background: var(--accent); border: 1px solid var(--border);
                     padding: 20px; border-radius: 20px; display: flex; gap: 15px; align-items: flex-start;
                 }
                 .bm-trust-banner h5 { margin: 0; font-weight: 800; color: var(--foreground); font-size: 0.95rem; }
                 .bm-trust-banner p { font-size: 0.8rem; color: var(--secondary); margin-top: 5px; line-height: 1.4; font-weight: 500; }
-
 
                 /* Loader */
                 .bm-premium-loader {
@@ -790,6 +789,7 @@ const ProductDetail = () => {
                     padding: 20px 30px; border-radius: 20px; display: flex; align-items: center; gap: 20px;
                     box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1); z-index: 2000; border: 1px solid var(--border);
                 }
+                @media (max-width: 768px) { .bm-notification-toast { top: 10px; right: 10px; left: 10px; padding: 15px; } }
                 .bm-notification-toast h4 { margin: 0; font-weight: 800; color: var(--foreground); }
                 .bm-notification-toast p { margin: 2px 0 0; font-size: 0.85rem; color: #22c55e; font-weight: 600; }
 
@@ -799,15 +799,15 @@ const ProductDetail = () => {
                 .review-meta { display: flex; align-items: center; gap: 15px; margin-bottom: 8px; font-size: 0.85rem; }
                 .review-stars { display: flex; gap: 2px; }
                 .review-comment { font-size: 0.95rem; color: var(--foreground); line-height: 1.5; }
-                .no-reviews { color: var(--secondary); font-style: italic; margin-bottom: 30px; }
+                .no-reviews { text-align: center; color: var(--secondary); padding: 20px; font-style: italic; }
 
-                .bm-review-form { margin-top: 40px; border-top: 1px solid var(--border); padding-top: 30px; }
-                .bm-review-form h4 { margin-bottom: 20px; font-weight: 800; }
-                .form-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
-                .form-group label { font-size: 0.8rem; font-weight: 700; color: var(--secondary); }
-                .form-group select, .form-group textarea {
-                    padding: 12px; border-radius: 10px; border: 1.5px solid var(--border);
-                    background: var(--card); color: var(--foreground); font-family: inherit;
+                .bm-review-form { background: var(--card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); margin-top: 20px; }
+                .bm-review-form h4 { margin-bottom: 15px; font-weight: 800; }
+                .bm-review-form .form-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
+                .bm-review-form label { font-size: 0.8rem; font-weight: 700; color: var(--secondary); }
+                .bm-review-form select, .bm-review-form textarea {
+                    width: 100%; padding: 12px; border-radius: 10px; border: 1.5px solid var(--border);
+                    background: var(--background); color: var(--foreground); font-family: inherit;
                 }
                 .bm-small-cta {
                     background: var(--foreground); color: var(--background);
@@ -819,19 +819,6 @@ const ProductDetail = () => {
                 .error-msg { color: #ef4444; font-weight: 700; margin-bottom: 10px; font-size: 0.9rem; }
                 .login-to-review { margin-top: 20px; padding: 20px; background: var(--accent); border-radius: 12px; text-align: center; }
                 .login-to-review button { background: none; border: none; font-weight: 800; color: var(--primary); cursor: pointer; text-decoration: underline; }
-
-                @media (max-width: 1200px) {
-                    .bm-layout-grid { grid-template-columns: 1fr; }
-                    .bm-visual-stack { position: relative; top: 0; }
-                    .bm-sidebar-stack { order: -1; }
-                }
-                @media (max-width: 768px) {
-                    .bm-max-container { padding: 0 20px; }
-                    .bm-product-identity h1 { font-size: 2rem; }
-                    .bm-pricing-engine .amount { font-size: 2.5rem; }
-                    .price-tag .amount { font-size: 2.5rem; }
-                    .bm-cta-hub { flex-direction: column; }
-                }
             `}</style>
         </div>
     );

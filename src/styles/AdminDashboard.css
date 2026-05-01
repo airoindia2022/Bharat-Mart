@@ -239,13 +239,25 @@
 
 @media (max-width: 1024px) {
   .admin-sidebar {
-    width: 80px;
+    width: 280px;
+    position: fixed;
+    left: -280px;
+    top: 0;
+    bottom: 0;
+    height: 100vh;
+    box-shadow: var(--shadow-xl);
   }
-  .admin-nav-item span {
-    display: none;
+  
+  .admin-sidebar.active {
+    left: 0;
   }
+
   .admin-sidebar-header h2 {
-    display: none;
+    display: block;
+  }
+
+  .admin-main {
+    padding: 1.5rem;
   }
 }
 
@@ -253,16 +265,79 @@
   .admin-dashboard {
     flex-direction: column;
   }
-  .admin-sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
+  
+  .admin-header h1 {
+    font-size: 1.5rem;
   }
-  .admin-sidebar-nav {
-    flex-direction: row;
-    overflow-x: auto;
+
+  .admin-header p {
+    font-size: 0.875rem;
   }
+
+  .admin-header > div {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
   .chart-grid {
     grid-template-columns: 1fr;
   }
+
+  .chart-card {
+    min-height: 300px;
+    padding: 1rem;
+  }
+
+  .admin-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table {
+    min-width: 600px;
+  }
+
+  .admin-main {
+    padding: 1rem;
+    padding-top: 5rem; /* Space for the mobile header */
+  }
+
+  /* Mobile menu toggle */
+  .admin-mobile-menu-btn {
+    display: flex !important;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 60;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+}
+
+.admin-mobile-menu-btn {
+  display: none;
+}
+
+.admin-sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 45;
+  backdrop-filter: blur(4px);
+}
+
+.admin-sidebar-overlay.active {
+  display: block;
 }

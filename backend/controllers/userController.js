@@ -1,11 +1,12 @@
-import User from '../models/User.js';
-import jwt from 'jsonwebtoken';
+const User = require('../models/User.js');
+const Image = require('../models/Image.js');
+const jwt = require('jsonwebtoken');
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
-export const registerUser = async (req, res) => {
+exports.registerUser = async (req, res) => {
     try {
         const { name, email, password, role, companyName, phoneNumber, address } = req.body;
         const userExists = await User.findOne({ email });
@@ -39,7 +40,7 @@ export const registerUser = async (req, res) => {
     }
 };
 
-export const loginUser = async (req, res) => {
+exports.loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
@@ -69,7 +70,7 @@ export const loginUser = async (req, res) => {
     }
 };
 
-export const getUserProfile = async (req, res) => {
+exports.getUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
         if (user) {
@@ -99,7 +100,7 @@ export const getUserProfile = async (req, res) => {
     }
 };
 
-export const getUserPublicProfile = async (req, res) => {
+exports.getUserPublicProfile = async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (user) {
@@ -120,7 +121,7 @@ export const getUserPublicProfile = async (req, res) => {
     }
 };
 
-export const updateUserProfile = async (req, res) => {
+exports.updateUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
         if (user) {
@@ -166,7 +167,7 @@ export const updateUserProfile = async (req, res) => {
     }
 };
 
-export const getUsers = async (req, res) => {
+exports.getUsers = async (req, res) => {
     try {
         const users = await User.find({});
         res.json(users);
@@ -175,14 +176,19 @@ export const getUsers = async (req, res) => {
     }
 };
 
-export const uploadLogo = async (req, res) => {
+exports.uploadLogo = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
         if (user) {
             if (!req.file) {
                 return res.status(400).json({ message: 'No file uploaded' });
             }
-            user.logoURL = req.file.path;
+            const image = await Image.create({
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+                fileName: req.file.originalname
+            });
+            user.logoURL = `${req.protocol}://${req.get('host')}/api/images/${image._id}`;
             const updatedUser = await user.save();
             res.json({
                 message: 'Logo uploaded successfully',
@@ -197,7 +203,7 @@ export const uploadLogo = async (req, res) => {
     }
 };
 
-export const toggleWishlist = async (req, res) => {
+exports.toggleWishlist = async (req, res) => {
     try {
         const { productId } = req.body;
         const user = await User.findById(req.user._id);
@@ -220,7 +226,7 @@ export const toggleWishlist = async (req, res) => {
     }
 };
 
-export const getWishlist = async (req, res) => {
+exports.getWishlist = async (req, res) => {
     try {
         const user = await User.findById(req.user._id).populate('wishlist');
         if (user) {

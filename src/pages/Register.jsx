@@ -37,7 +37,7 @@ const Register = () => {
             <div className="card" style={{ width: '100%', maxWidth: '600px', padding: '40px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '30px' }}>
                     <h1 style={{ fontSize: '2rem', marginBottom: '10px' }}>Create Account</h1>
-                    <p style={{ color: 'var(--secondary)' }}>Join Bharat Mart B2B Network</p>
+                    <p style={{ color: 'var(--secondary)' }}>Join BazaarIndia B2B Network</p>
                 </div>
 
                 {error && <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '5px', marginBottom: '20px', textAlign: 'center' }}>{error}</div>}

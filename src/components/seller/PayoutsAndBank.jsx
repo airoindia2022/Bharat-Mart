@@ -44,12 +44,12 @@ const PayoutsAndBank = ({ stats, orders }) => {
     return (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
             {/* Header Section */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div className="seller-header-flex">
                 <div>
                     <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--foreground)' }}>Payouts & Financials</h1>
                     <p style={{ color: 'var(--secondary)' }}>Manage your earnings, settlement account, and track your transfers.</p>
                 </div>
-                <div style={{ display: 'flex', background: 'var(--accent)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', background: 'var(--accent)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
                     <button
                         onClick={() => setActiveTab('overview')}
                         style={{
@@ -62,7 +62,8 @@ const PayoutsAndBank = ({ stats, orders }) => {
                             backgroundColor: activeTab === 'overview' ? 'var(--card)' : 'transparent',
                             color: activeTab === 'overview' ? 'var(--primary)' : 'var(--secondary)',
                             boxShadow: activeTab === 'overview' ? 'var(--shadow-sm)' : 'none',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            flex: '1 1 auto'
                         }}
                     >
                         Overview
@@ -79,7 +80,8 @@ const PayoutsAndBank = ({ stats, orders }) => {
                             backgroundColor: activeTab === 'history' ? 'var(--card)' : 'transparent',
                             color: activeTab === 'history' ? 'var(--primary)' : 'var(--secondary)',
                             boxShadow: activeTab === 'history' ? 'var(--shadow-sm)' : 'none',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            flex: '1 1 auto'
                         }}
                     >
                         History
@@ -96,7 +98,8 @@ const PayoutsAndBank = ({ stats, orders }) => {
                             backgroundColor: activeTab === 'bank' ? 'var(--card)' : 'transparent',
                             color: activeTab === 'bank' ? 'var(--primary)' : 'var(--secondary)',
                             boxShadow: activeTab === 'bank' ? 'var(--shadow-sm)' : 'none',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            flex: '1 1 auto'
                         }}
                     >
                         Bank Settings
@@ -105,10 +108,10 @@ const PayoutsAndBank = ({ stats, orders }) => {
             </div>
 
             {activeTab === 'overview' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px' }}>
+                <div className="dashboard-chart-grid" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '30px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         {/* Summary Cards */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div className="stat-card-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div className="card" style={{ background: 'linear-gradient(135deg, var(--brand-blue) 0%, #3b82f6 100%)', color: 'white', border: 'none' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                                     <div style={{ padding: '10px', borderRadius: '12px', background: 'rgba(255,255,255,0.2)' }}>
@@ -283,8 +286,8 @@ const PayoutsAndBank = ({ stats, orders }) => {
                         </div>
                     </div>
 
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div className="bm-table-container">
+                        <table className="bm-table">
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                     <th style={{ padding: '15px', fontSize: '0.85rem', color: 'var(--secondary)', fontWeight: 600 }}>Transfer Date</th>
@@ -338,7 +341,7 @@ const PayoutsAndBank = ({ stats, orders }) => {
             )}
 
             {activeTab === 'bank' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 500px) 1fr', gap: '40px' }}>
+                <div className="dashboard-chart-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 500px) 1fr', gap: '40px' }}>
                     <div className="card">
                         <h3 style={{ marginBottom: '25px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <Landmark size={22} color="var(--primary)" /> Bank Configuration
@@ -356,7 +359,7 @@ const PayoutsAndBank = ({ stats, orders }) => {
                                 />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '15px' }}>
+                            <div className="stat-card-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '15px' }}>
                                 <div>
                                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>Bank Name</label>
                                     <input

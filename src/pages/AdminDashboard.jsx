@@ -9,6 +9,7 @@ import Overview from '../components/admin/Overview';
 import ProductManagement from '../components/admin/ProductManagement';
 import UserManagement from '../components/admin/UserManagement';
 import OrderManagement from '../components/admin/OrderManagement';
+import { Menu } from 'lucide-react';
 import '../styles/AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -19,6 +20,7 @@ const AdminDashboard = () => {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState('overview');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -27,6 +29,8 @@ const AdminDashboard = () => {
         }
         return () => controller.abort();
     }, [user]);
+
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     const fetchData = async (signal) => {
         try {
@@ -135,7 +139,18 @@ const AdminDashboard = () => {
 
     return (
         <div className="admin-dashboard">
-            <Sidebar activeTab={view} setActiveTab={setView} user={user} onLogout={logout} />
+            <div className={`admin-sidebar-overlay ${isSidebarOpen ? 'active' : ''}`} onClick={() => setIsSidebarOpen(false)}></div>
+            <button className="admin-mobile-menu-btn" onClick={toggleSidebar}>
+                <Menu size={24} />
+            </button>
+            
+            <Sidebar 
+                activeTab={view} 
+                setActiveTab={(tab) => { setView(tab); setIsSidebarOpen(false); }} 
+                user={user} 
+                onLogout={logout}
+                isOpen={isSidebarOpen}
+            />
             
             <main className="admin-main">
                 <header className="admin-header">

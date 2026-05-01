@@ -1,11 +1,12 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import connectDB from './config/db.js';
-import userRoutes from './routes/userRoutes.js';
-import productRoutes from './routes/productRoutes.js';
-import paymentRoutes from './routes/paymentRoutes.js';
-import statsRoutes from './routes/statsRoutes.js';
+require('dotenv/config');
+const express = require('express');
+const cors = require('cors');
+const connectDB = require('./config/db.js');
+const userRoutes = require('./routes/userRoutes.js');
+const productRoutes = require('./routes/productRoutes.js');
+const paymentRoutes = require('./routes/paymentRoutes.js');
+const statsRoutes = require('./routes/statsRoutes.js');
+const imageRoutes = require('./routes/imageRoutes.js');
 
 connectDB();
 
@@ -18,6 +19,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/images', imageRoutes);
 
 app.use((err, req, res, next) => {
     console.error('SERVER ERROR LOG:', err);

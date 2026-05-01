@@ -1,8 +1,8 @@
-import Razorpay from 'razorpay';
-import crypto from 'crypto';
-import Order from '../models/Order.js';
-import Product from '../models/Product.js';
-import User from '../models/User.js';
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
+const Order = require('../models/Order.js');
+const Product = require('../models/Product.js');
+const User = require('../models/User.js');
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -86,7 +86,7 @@ const transferToSeller = async (orderId) => {
 // @desc    Create Razorpay Order for specific product (Direct Buy)
 // @route   POST /api/payment/create-order
 // @access  Private
-export const createOrder = async (req, res) => {
+exports.createOrder = async (req, res) => {
     try {
         const { productId, amount, quantity, sellerId } = req.body;
         
@@ -129,7 +129,7 @@ export const createOrder = async (req, res) => {
 // @desc    Create Razorpay Order for Cart
 // @route   POST /api/payment/create-cart-order
 // @access  Private
-export const createCartOrder = async (req, res) => {
+exports.createCartOrder = async (req, res) => {
     try {
         const { cartItems, totalAmount } = req.body;
         
@@ -184,7 +184,7 @@ export const createCartOrder = async (req, res) => {
 // @desc    Verify Payment
 // @route   POST /api/payment/verify-payment
 // @access  Private
-export const verifyPayment = async (req, res) => {
+exports.verifyPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
@@ -228,7 +228,7 @@ export const verifyPayment = async (req, res) => {
 // @desc    Get My Orders (as a buyer)
 // @route   GET /api/payment/my-orders
 // @access  Private
-export const getMyOrders = async (req, res) => {
+exports.getMyOrders = async (req, res) => {
     try {
         const orders = await Order.find({ buyer: req.user._id })
             .populate('product', 'name price images')
@@ -243,7 +243,7 @@ export const getMyOrders = async (req, res) => {
 // @desc    Get Seller Orders (as a seller)
 // @route   GET /api/payment/seller-orders
 // @access  Seller/Admin
-export const getSellerOrders = async (req, res) => {
+exports.getSellerOrders = async (req, res) => {
     try {
         const orders = await Order.find({ seller: req.user._id })
             .populate('product', 'name price images')
@@ -258,7 +258,7 @@ export const getSellerOrders = async (req, res) => {
 // @desc    Get All Orders (as admin)
 // @route   GET /api/payment/all-orders
 // @access  Admin
-export const getAllOrders = async (req, res) => {
+exports.getAllOrders = async (req, res) => {
     try {
         const orders = await Order.find({})
             .populate('product', 'name price images')
@@ -274,7 +274,7 @@ export const getAllOrders = async (req, res) => {
 // @desc    Settle Order Manually / Transfer Settlement (as admin)
 // @route   PUT /api/payment/settle-order/:id
 // @access  Admin
-export const settleOrderManual = async (req, res) => {
+exports.settleOrderManual = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
         if (!order) {
@@ -305,7 +305,7 @@ export const settleOrderManual = async (req, res) => {
 // @desc    Refund Order Manually (as admin)
 // @route   PUT /api/payment/refund-order/:id
 // @access  Admin
-export const refundOrderManual = async (req, res) => {
+exports.refundOrderManual = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
         if (!order) {
@@ -352,7 +352,7 @@ export const refundOrderManual = async (req, res) => {
 // @desc    Update Order Status
 // @route   PUT /api/payment/order/:id/status
 // @access  Seller/Admin
-export const updateOrderStatus = async (req, res) => {
+exports.updateOrderStatus = async (req, res) => {
     try {
         const { status } = req.body;
         const order = await Order.findById(req.params.id);
