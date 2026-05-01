@@ -97,6 +97,7 @@ const ProductDetail = () => {
         if (!user) { navigate('/login'); return; }
 
         try {
+            const { key } = await paymentService.getRazorpayKey();
             const data = await paymentService.createOrder({
                 productId: product._id,
                 amount: product.price * orderData.quantity,
@@ -107,7 +108,7 @@ const ProductDetail = () => {
             const { order } = data;
 
             const options = {
-                key: "rzp_test_SNzPfkHs3w4syf",
+                key,
                 amount: order.amount,
                 currency: order.currency,
                 name: "BazaarIndia",

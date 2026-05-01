@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 // Get base URL from environment variables or use default
-// const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const BASE_URL = 'https://back.bazaarindia.org';
-const API_URL = `${BASE_URL}/api`;
+const API_URL = import.meta.env.VITE_API_URL || 'https://back.bazaarindia.org/api';
+// const BASE_URL = 'https://back.bazaarindia.org';
+// const API_URL = `${BASE_URL}/api`;
 
-export { BASE_URL, API_URL };
+export { API_URL };
 
 const api = axios.create({
   baseURL: API_URL,

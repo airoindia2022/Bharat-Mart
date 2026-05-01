@@ -1,8 +1,9 @@
 const express = require('express');
-const { createOrder, createCartOrder, verifyPayment, getMyOrders, getSellerOrders, getAllOrders, settleOrderManual, refundOrderManual, updateOrderStatus } = require('../controllers/paymentController.js');
+const { getRazorpayKey, createOrder, createCartOrder, verifyPayment, getMyOrders, getSellerOrders, getAllOrders, settleOrderManual, refundOrderManual, updateOrderStatus } = require('../controllers/paymentController.js');
 const { protect, seller, admin } = require('../middleware/authMiddleware.js');
 
 const router = express.Router();
+router.get('/get-key', protect, getRazorpayKey);
 
 router.post('/create-order', protect, createOrder);
 router.post('/create-cart-order', protect, createCartOrder);

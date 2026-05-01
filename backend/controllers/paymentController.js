@@ -9,6 +9,13 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
+// @desc    Get Razorpay Key ID
+// @route   GET /api/payment/get-key
+// @access  Private
+exports.getRazorpayKey = async (req, res) => {
+    res.status(200).json({ key: process.env.RAZORPAY_KEY_ID });
+};
+
 // Helper: Transfer funds to seller
 const transferToSeller = async (orderId) => {
     try {
@@ -88,8 +95,13 @@ const transferToSeller = async (orderId) => {
 // @access  Private
 exports.createOrder = async (req, res) => {
     try {
-        const { productId, amount, quantity } = req.body;
+        const { productId, quantity: requestedQuantity } = req.body;
         
+        const quantity = Number(requestedQuantity) || 1;
+        if (quantity <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid quantity' });
+        }
+
         // Check stock availability and fetch product info
         const product = await Product.findById(productId);
         if (!product) {
@@ -106,7 +118,7 @@ exports.createOrder = async (req, res) => {
         const options = {
             amount: Math.round(finalAmount * 100), // Amount in paise
             currency: "INR",
-            receipt: `receipt_${Date.now()}`,
+            receipt: `receipt_${Date.now()}_${req.user._id.toString().slice(-5)}`,
         };
 
         const razorpayOrder = await razorpay.orders.create(options);
@@ -132,60 +144,97 @@ exports.createOrder = async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Failed to create payment order',
-            error: error.message 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
+
 
 // @desc    Create Razorpay Order for Cart
 // @route   POST /api/payment/create-cart-order
 // @access  Private
 exports.createCartOrder = async (req, res) => {
     try {
-        const { cartItems, totalAmount } = req.body;
+        const { cartItems, totalAmount: frontendTotal } = req.body;
         
-        if (!cartItems || cartItems.length === 0) {
-            return res.status(400).json({ success: false, message: 'Cart is empty' });
+        if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+            return res.status(400).json({ success: false, message: 'Cart is empty or invalid' });
         }
 
-        if (!totalAmount || totalAmount <= 0) {
-            return res.status(400).json({ success: false, message: 'Invalid total amount' });
-        }
+        console.log(`Processing cart checkout for user ${req.user._id} with ${cartItems.length} items.`);
 
-        // Validate stock and fetch seller IDs for all items
+        // Validate stock, fetch details from DB, and calculate actual total
         const validatedItems = [];
+        let calculatedTotal = 0;
+
         for (const item of cartItems) {
+            if (!item._id) {
+                return res.status(400).json({ success: false, message: 'Missing product ID in cart items' });
+            }
+
             const product = await Product.findById(item._id);
             if (!product) {
                 return res.status(404).json({ success: false, message: `Product not found: ${item._id}` });
             }
-            if (product.countInStock < item.quantity) {
+
+            const quantity = Number(item.quantity) || 0;
+            if (quantity <= 0) {
+                return res.status(400).json({ success: false, message: `Invalid quantity for ${product.name}` });
+            }
+
+            if (product.countInStock < quantity) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: `Stock not available for ${product.name}` 
+                    message: `Stock not available for ${product.name} (Available: ${product.countInStock})` 
                 });
             }
-            // Store the item with the seller ID from DB for reliability
+
+            // Calculate subtotal for this item using DB price
+            const itemPrice = product.price;
+            calculatedTotal += itemPrice * quantity;
+
+            // Store the item with verified data
             validatedItems.push({
-                ...item,
+                productId: product._id,
                 seller: product.seller,
-                price: product.price // Use price from DB for security
+                price: itemPrice,
+                quantity: quantity
             });
         }
 
+        // Use calculated total for Razorpay to prevent frontend tampering
+        // and ensures we have a valid number
+        const finalTotal = calculatedTotal;
+        
+        if (finalTotal <= 0) {
+            return res.status(400).json({ success: false, message: 'Total amount must be greater than zero' });
+        }
+
         const options = {
-            amount: Math.round(totalAmount * 100), // Ensure it's an integer for Razorpay
+            amount: Math.round(finalTotal * 100), // Amount in paise
             currency: "INR",
-            receipt: `receipt_cart_${Date.now()}`,
+            receipt: `receipt_cart_${Date.now()}_${req.user._id.toString().slice(-5)}`,
         };
 
-        const razorpayOrder = await razorpay.orders.create(options);
+        let razorpayOrder;
+        try {
+            razorpayOrder = await razorpay.orders.create(options);
+        } catch (rzpError) {
+            console.error('Razorpay API Error:', rzpError);
+            return res.status(500).json({
+                success: false,
+                message: 'Razorpay payment initiation failed',
+                error: rzpError.message
+            });
+        }
 
         // Store multiple orders in our database, all linked to the same razorpayOrderId
+        // We use a transaction-like approach or just Promise.all
         const orderPromises = validatedItems.map(item => {
             return Order.create({
                 buyer: req.user._id,
-                product: item._id,
+                product: item.productId,
                 seller: item.seller,
                 razorpayOrderId: razorpayOrder.id,
                 amount: item.price * item.quantity,
@@ -205,10 +254,12 @@ exports.createCartOrder = async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'Failed to create payment order',
-            error: error.message 
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
+
 
 // @desc    Verify Payment
 // @route   POST /api/payment/verify-payment

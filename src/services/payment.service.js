@@ -1,6 +1,15 @@
 import axiosInstance from './axiosInstance';
 
 /**
+ * Fetch the Razorpay Key ID from the backend
+ * @returns {Promise<Object>} Object containing the key
+ */
+export const getRazorpayKey = async () => {
+    const { data } = await axiosInstance.get('/payment/get-key');
+    return data;
+};
+
+/**
  * Initiate an order to get Razorpay order ID
  * @param {Object} orderData - The order details
  * @returns {Promise<Object>} Created order data

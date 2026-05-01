@@ -27,6 +27,7 @@ const Cart = () => {
 
         setLoading(true);
         try {
+            const { key } = await paymentService.getRazorpayKey();
             const data = await paymentService.createCartOrder({
                 cartItems: cartItems.map(item => ({
                     _id: item._id,
@@ -40,7 +41,7 @@ const Cart = () => {
             const { order } = data;
 
             const options = {
-                key: "rzp_test_SNzPfkHs3w4syf", // Use the same key as in ProductDetail.jsx
+                key, // Use dynamic key from backend
                 amount: order.amount,
                 currency: order.currency,
                 name: "BazaarIndia",
